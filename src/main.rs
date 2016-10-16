@@ -49,7 +49,7 @@ fn main() {
              .value_name("NAME")
              // TODO: Custom validator: verify no filename-invalid characters
              .help("Specify the output file/folder name \
-                   [default: the volume label]"))
+                   [default: <the volume label>]"))
              // TODO: Decide how to combine this default with --set-size
         .arg(Arg::with_name("set_size")
              .long("set-size")
