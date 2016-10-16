@@ -2,6 +2,9 @@
 extern crate clap;
 use clap::{App,Arg,SubCommand};
 
+// TODO: Allow overriding in a config file
+const DEFAULT_INPATH: &'static str = "/dev/sr0";
+
 fn main() {
     App::new("rip_media")
         .about("Simple frontend for backing up physical media")
@@ -11,7 +14,7 @@ fn main() {
              .long("inpath")
              .takes_value(true)
              .value_name("PATH")
-             .default_value("/dev/sr0")  // TODO: Define elsewhere
+             .default_value(DEFAULT_INPATH)
              .help("Path to source medium (device, image file, etc.)"))
         .arg(Arg::with_name("outdir")
              .short("o")
