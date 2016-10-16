@@ -39,7 +39,7 @@ fn main() {
              .empty_values(false)
              .global(true)
              .value_name("PATH")
-             .default_value(".")    // TODO: os.curdir equivalent
+             .default_value(".")  // XXX: Look for an os.curdir equivalent
              // TODO: Custom validator to verify writability
              .help("Path to parent directory for output file(s)"))
         .arg(Arg::with_name("name")
@@ -50,6 +50,7 @@ fn main() {
              // TODO: Custom validator: verify no filename-invalid characters
              .help("Specify the output file/folder name \
                    [default: the volume label]"))
+             // TODO: Decide how to combine this default with --set-size
         .arg(Arg::with_name("set_size")
              .long("set-size")
              .empty_values(false)
@@ -80,6 +81,7 @@ fn main() {
             .display_order(2)
             .about("Rip a Sony PlayStation 2 disc into a PCSX2-compatible \
                    format"))
+        // TODO: cleanrip, retrode
         .subcommand(SubCommand::with_name("damaged")
             .display_order(3)
             .about("Recover a damaged CD"))
