@@ -21,10 +21,13 @@ fn main() {
     App::new("rip_media")
         .about("Simple frontend for backing up physical media")
         .version(crate_version!())
+
+        // -- Common Arguments --
         .arg(Arg::with_name("inpath")
              .short("i")
              .long("inpath")
              .empty_values(false)
+             .global(true)
              .value_name("PATH")
              .default_value(DEFAULT_INPATH)
              // TODO: Custom validator to verify readability
@@ -34,6 +37,7 @@ fn main() {
              .short("o")
              .long("outdir")
              .empty_values(false)
+             .global(true)
              .value_name("PATH")
              .default_value(".")    // TODO: os.curdir equivalent
              // TODO: Custom validator to verify writability
@@ -41,6 +45,7 @@ fn main() {
         .arg(Arg::with_name("name")
              .long("name")
              .empty_values(false)
+             .global(true)
              .value_name("NAME")
              // TODO: Custom validator: verify no filename-invalid characters
              .help("Specify the output file/folder name \
@@ -48,6 +53,7 @@ fn main() {
         .arg(Arg::with_name("set_size")
              .long("set-size")
              .empty_values(false)
+             .global(true)
              .value_name("NUM")
              .default_value("1")
              // TODO: Find a way to make *clap* mention which argument failed
@@ -55,6 +61,8 @@ fn main() {
              .validator(validate_set_size)
              .help("Number of discs/cartridges/etc. to process under the same \
                     name (eg. multi-disc games/albums)"))
+
+        // -- Subcommands --
         .subcommand(SubCommand::with_name("audio")
             .display_order(1)
             .about("Rip an audio CD"))
