@@ -10,12 +10,11 @@ fn validate_set_size(value: String) -> Result<(), String> {
         if num >= 1_u32 {
             return Ok(());
         } else {
-            return Err(format!("Set size must be 1 or greater (not {})", value))
+            return Err(format!("Set size must be 1 or greater (not \"{}\")", value));
         }
     }
-    Err(format!("Set size must be an integer (whole number), not {}", value))
+    Err(format!("Set size must be an integer (whole number), not \"{}\"", value))
 }
-
 
 fn main() {
     App::new("rip_media")
