@@ -1,6 +1,6 @@
 #[macro_use]
 extern crate clap;
-use clap::{App,Arg,SubCommand};
+use clap::{App,AppSettings,Arg,SubCommand};
 
 mod validators;
 
@@ -19,6 +19,9 @@ fn main() {
     App::new("rip_media")
         .about("Simple frontend for backing up physical media")
         .version(crate_version!())
+        .settings(&[
+            AppSettings::GlobalVersion,
+            AppSettings::SubcommandRequiredElseHelp])
 
         // -- Common Arguments --
         .args(&[
