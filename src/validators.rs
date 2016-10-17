@@ -1,11 +1,7 @@
-extern crate libc;
-
 use std::error::Error;
 use std::fs::File;
 use std::io::ErrorKind;
 use std::path::Path;
-
-use self::libc::{access,W_OK};
 
 // TODO: Make this different if built on Windows
 const INVALID_FILENAME_CHARS: &'static str = "/\0";
@@ -26,6 +22,36 @@ pub fn filename_valid(value: String) -> Result<(), String> {
     Err(format!("Name contains invalid characters: {}", value))
 }
 
+/// The effects of unsafety cannot be isolated with more granularity than a module scope
+/// because of how public/private access control works, so isolate the access() libc
+/// call in its own module to make the intent more clear when refactoring this file.
+mod access {
+    extern crate libc;
+    use self::libc::{access, c_int, W_OK};
+
+    use std::path::Path;
+
+    fn wrapped_access(abs_path: &str, mode: c_int) -> bool {
+        // Debug-time check that we're using the API properly
+        assert!(Path::new(&abs_path).is_absolute());
+
+
+        let ptr = abs_path.as_ptr() as *const i8;
+
+        // I'm willing to risk using unsafe because access() shouldn't mutate anything
+        unsafe {
+            // Test if we **should** be able to write to the given path
+            if access(ptr, mode) == 0 { return true; }
+        }
+        return false;
+    }
+
+    /// Use a name which helps to drive home the security hazard in access() abuse
+    /// and hide the mode flag behind an abstraction so the user can't mess up unsafe{}
+    /// (eg. On my system, "/" erroneously returns success)
+    pub fn probably_writable(path: &str) -> bool { wrapped_access(path, W_OK) }
+}
+
 /// Test that the given path **should** be writable
 /// TODO: Unit test **HEAVILY** (Has unsafe block. Here be dragons!)
 pub fn dir_writable(value: String) -> Result<(), String> {
@@ -40,13 +66,7 @@ pub fn dir_writable(value: String) -> Result<(), String> {
     // TODO: Think about how to code this more elegantly (try! perhaps?)
     if let Ok(abs_pathbuf) = path.canonicalize() {
         if let Some(abs_path) = abs_pathbuf.to_str() {
-            let ptr = abs_path.as_ptr() as *const i8;
-
-            // I'm willing to risk this because access() shouldn't mutate anything
-            unsafe {
-                // Test if we **should** be able to write to the given path
-                if access(ptr, W_OK) == 0 { return Ok(()); }
-            }
+            if self::access::probably_writable(abs_path) { return Ok(()); }
         }
     }
 
