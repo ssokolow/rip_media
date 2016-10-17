@@ -35,9 +35,10 @@ pub fn dir_writable(value: String) -> Result<(), String> {
     }
 
     // I'm willing to risk this because access() shouldn't mutate anything
+    let ptr = value.as_ptr() as *const i8;
     unsafe {
         // Test if we **should** be able to write to the given path
-        if access(value.as_ptr() as *const i8, W_OK) == 0 { return Ok(()); }
+        if access(ptr, W_OK) == 0 { return Ok(()); }
     }
 
     Err(format!("Would be unable to write to destination directory: {}", value))
