@@ -47,8 +47,6 @@ fn main() {
              .global(true)
              .value_name("NUM")
              .default_value("1")
-             // TODO: Find a way to make *clap* mention which argument failed
-             //       validation so my validator can be generic
              .validator(validators::set_size)
              .help("Number of discs/cartridges/etc. to process under the same \
                     name (eg. multi-disc games/albums)"))

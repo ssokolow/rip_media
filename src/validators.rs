@@ -12,7 +12,10 @@ pub fn path_readable(value: String) -> Result<(), String> {
     )
 }
 
+/// TODO: Find a way to make *clap* mention which argument failed
+///       validation so my validator can be generic
 pub fn set_size(value: String) -> Result<(), String> {
+    // I can't imagine needing more than u8, but I see no harm in being flexible
     if let Ok(num) = value.parse::<u32>() {
         if num >= 1_u32 {
             return Ok(());
