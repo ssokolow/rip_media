@@ -3,8 +3,8 @@ use std::fs::File;
 use std::io::ErrorKind;
 use std::path::Path;
 
-// TODO: Make this different if built on Windows
-const INVALID_FILENAME_CHARS: &'static str = "/\0";
+/// Characters invalid under NTFS in the Win32 namespace
+const INVALID_FILENAME_CHARS: &'static str = "/\\:*?\"<>|\0";
 
 /// Return true if the given character is in `INVALID_FILENAME_CHARS`
 fn is_bad_for_fname(c: &char) -> bool {
