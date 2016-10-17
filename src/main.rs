@@ -37,7 +37,7 @@ fn main() {
              .empty_values(false)
              .global(true)
              .value_name("NAME")
-             // TODO: Custom validator: verify no filename-invalid characters
+             .validator(validators::filename_valid)
              .help("Specify the output file/folder name \
                    [default: <the volume label>]"))
              // TODO: Decide how to combine this default with --set-size
