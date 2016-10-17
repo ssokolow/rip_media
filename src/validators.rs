@@ -58,6 +58,8 @@ pub fn path_readable(value: String) -> Result<(), String> {
     File::open(&value).map(|_| ()).map_err(|e|
         format!("{}: {}", &value, match e.kind() {
             ErrorKind::NotFound => "path does not exist",
+            // TODO: Return Ok(()) for ErrorKind::Other (we can wait/retry later)
+            ErrorKind::Other => "unknown OS error (medium not ready?)",
             _ => e.description()
         })
     )
