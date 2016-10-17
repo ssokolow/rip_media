@@ -7,6 +7,15 @@ mod validators;
 // TODO: Allow overriding in a config file
 const DEFAULT_INPATH: &'static str = "/dev/sr0";
 
+/// # Development Policy
+/// Clap validators for references like filesystem paths (as opposed to self-contained
+/// data like set sizes) are to be used only to improving the user experience by
+/// maximizing the chance that bad data will be caught early.
+///
+/// To avoid vulnerabilities based on race conditions or shortcomings in functions like
+/// access() (which will falsely claim "/" is writable), all "reference data" must be
+/// validated (and failures handled) on **every** use.
+
 /// Wrapper for Arg::from_usage to deduplicate setting a few things all args have
 /// TODO: Does Clap provide a more proper way to set defaults than this?
 fn arg_from_usage(usage: &str) -> Arg {
