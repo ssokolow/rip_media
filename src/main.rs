@@ -20,8 +20,7 @@ fn main() {
              .global(true)
              .value_name("PATH")
              .default_value(DEFAULT_INPATH)
-             // TODO: Custom validator to verify readability
-             // https://github.com/kbknapp/clap-rs/blob/master/examples/15_custom_validator.rs
+             .validator(validators::inpath)
              .help("Path to source medium (device, image file, etc.)"))
         .arg(Arg::with_name("outdir")
              .short("o")
@@ -31,6 +30,7 @@ fn main() {
              .value_name("PATH")
              .default_value(".")  // XXX: Look for an os.curdir equivalent
              // TODO: Custom validator to verify writability
+             // https://github.com/kbknapp/clap-rs/blob/master/examples/15_custom_validator.rs
              .help("Path to parent directory for output file(s)"))
         .arg(Arg::with_name("name")
              .long("name")
