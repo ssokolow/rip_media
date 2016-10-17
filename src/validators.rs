@@ -6,22 +6,6 @@ use std::path::Path;
 /// Characters invalid under NTFS in the Win32 namespace
 const INVALID_FILENAME_CHARS: &'static str = "/\\:*?\"<>|\0";
 
-/// Return true if the given character is in `INVALID_FILENAME_CHARS`
-fn is_bad_for_fname(c: &char) -> bool {
-    INVALID_FILENAME_CHARS.chars().any(|x| x == *c)
-}
-
-/// Test that the given string doesn't contain any `INVALID_FILENAME_CHARS`
-/// Adapted from http://stackoverflow.com/a/30791678
-///
-/// TODO: Rethink this to properly handle non-POSIX target filesystems under POSIX OSes
-pub fn filename_valid(value: String) -> Result<(), String> {
-    if value.chars().all(|c| !is_bad_for_fname(&c)) {
-        return Ok(());
-    }
-    Err(format!("Name contains invalid characters: {}", value))
-}
-
 /// The effects of unsafety cannot be isolated with more granularity than a module scope
 /// because of how public/private access control works, so isolate the access() libc
 /// call in its own module to make the intent more clear when refactoring this file.
@@ -71,6 +55,22 @@ pub fn dir_writable(value: String) -> Result<(), String> {
     }
 
     Err(format!("Would be unable to write to destination directory: {}", value))
+}
+
+/// Test that the given string doesn't contain any `INVALID_FILENAME_CHARS`
+/// Adapted from http://stackoverflow.com/a/30791678
+///
+/// TODO: Rethink this to properly handle non-POSIX target filesystems under POSIX OSes
+pub fn filename_valid(value: String) -> Result<(), String> {
+    if value.chars().all(|c| !is_bad_for_fname(&c)) {
+        return Ok(());
+    }
+    Err(format!("Name contains invalid characters: {}", value))
+}
+
+/// Return true if the given character is in `INVALID_FILENAME_CHARS`
+fn is_bad_for_fname(c: &char) -> bool {
+    INVALID_FILENAME_CHARS.chars().any(|x| x == *c)
 }
 
 /// Test that the given path can be opened for reading and adjust failure messages
