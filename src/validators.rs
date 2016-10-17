@@ -29,16 +29,25 @@ pub fn filename_valid(value: String) -> Result<(), String> {
 /// Test that the given path **should** be writable
 /// TODO: Unit test **HEAVILY** (Has unsafe block. Here be dragons!)
 pub fn dir_writable(value: String) -> Result<(), String> {
+    let path = Path::new(&value);
+
     // Test that the path is a directory
-    if !Path::new(&value).is_dir() {
+    // (Check this before, not after, as an extra safety guard on the unsafe block)
+    if !path.is_dir() {
         return Err(format!("Not a directory: {}", value));
     }
 
-    // I'm willing to risk this because access() shouldn't mutate anything
-    let ptr = value.as_ptr() as *const i8;
-    unsafe {
-        // Test if we **should** be able to write to the given path
-        if access(ptr, W_OK) == 0 { return Ok(()); }
+    // TODO: Think about how to code this more elegantly (try! perhaps?)
+    if let Ok(abs_pathbuf) = path.canonicalize() {
+        if let Some(abs_path) = abs_pathbuf.to_str() {
+            let ptr = abs_path.as_ptr() as *const i8;
+
+            // I'm willing to risk this because access() shouldn't mutate anything
+            unsafe {
+                // Test if we **should** be able to write to the given path
+                if access(ptr, W_OK) == 0 { return Ok(()); }
+            }
+        }
     }
 
     Err(format!("Would be unable to write to destination directory: {}", value))
