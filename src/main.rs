@@ -14,44 +14,35 @@ fn main() {
 
         // -- Common Arguments --
         .args(&[
-              Arg::with_name("inpath")
-                .short("i")
-                .long("inpath")
-                .empty_values(false)
+              Arg::from_usage("[inpath] -i --inpath=<PATH>")
                 .global(true)
-                .value_name("PATH")
+                .empty_values(false)
                 .default_value(DEFAULT_INPATH)
                 .validator(validators::path_readable)
                 .help("Path to source medium (device, image file, etc.)"),
-            Arg::with_name("outdir")
-                .short("o")
-                .long("outdir")
-                .empty_values(false)
+            Arg::from_usage("[outdir] -o --outdir=<PATH>")
                 .global(true)
-                .value_name("PATH")
+                .empty_values(false)
                 .default_value(".")  // XXX: Look for an os.curdir equivalent
                 .validator(validators::dir_writable)
                 .help("Path to parent directory for output file(s)"),
-            Arg::with_name("name")
-                .long("name")
-                .empty_values(false)
+            Arg::from_usage("[name] --name=[NAME]")
                 .global(true)
-                .value_name("NAME")
+                .empty_values(false)
                 .validator(validators::filename_valid)
                 .help("Specify the output file/folder name \
                        [default: <the volume label>]"),
                 // TODO: Decide how to combine this default with --set-size
-            Arg::with_name("set_size")
-                .long("set-size")
-                .empty_values(false)
+            Arg::from_usage("[set_size] --set-size=<NUM>")
                 .global(true)
-                .value_name("NUM")
+                .empty_values(false)
                 .default_value("1")
                 .validator(validators::set_size)
                 .help("Number of discs/cartridges/etc. to process under the same \
                        name (eg. multi-disc games/albums)")])
 
         // -- Subcommands --
+        // TODO: Ordering with a ton of explicit .display_order() calls
         .subcommands(vec![
             SubCommand::with_name("audio")
                 .display_order(1)
