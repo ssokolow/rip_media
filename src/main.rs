@@ -7,6 +7,14 @@ mod validators;
 // TODO: Allow overriding in a config file
 const DEFAULT_INPATH: &'static str = "/dev/sr0";
 
+/// Wrapper for Arg::from_usage to deduplicate setting a few things all args have
+/// TODO: Does Clap provide a more proper way to set defaults than this?
+fn arg_from_usage(usage: &str) -> Arg {
+    Arg::from_usage(usage)
+        .global(true)
+        .empty_values(false)
+}
+
 fn main() {
     App::new("rip_media")
         .about("Simple frontend for backing up physical media")
@@ -14,28 +22,20 @@ fn main() {
 
         // -- Common Arguments --
         .args(&[
-              Arg::from_usage("[inpath] -i --inpath=<PATH>")
-                .global(true)
-                .empty_values(false)
+              arg_from_usage("[inpath] -i --inpath=<PATH>")
                 .default_value(DEFAULT_INPATH)
                 .validator(validators::path_readable)
                 .help("Path to source medium (device, image file, etc.)"),
-            Arg::from_usage("[outdir] -o --outdir=<PATH>")
-                .global(true)
-                .empty_values(false)
+            arg_from_usage("[outdir] -o --outdir=<PATH>")
                 .default_value(".")  // XXX: Look for an os.curdir equivalent
                 .validator(validators::dir_writable)
                 .help("Path to parent directory for output file(s)"),
-            Arg::from_usage("[name] --name=[NAME]")
-                .global(true)
-                .empty_values(false)
+            arg_from_usage("[name] --name=[NAME]")
                 .validator(validators::filename_valid)
                 .help("Specify the output file/folder name \
                        [default: <the volume label>]"),
                 // TODO: Decide how to combine this default with --set-size
-            Arg::from_usage("[set_size] --set-size=<NUM>")
-                .global(true)
-                .empty_values(false)
+            arg_from_usage("[set_size] --set-size=<NUM>")
                 .default_value("1")
                 .validator(validators::set_size)
                 .help("Number of discs/cartridges/etc. to process under the same \
