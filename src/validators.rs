@@ -13,11 +13,9 @@ mod access {
     extern crate libc;
     use self::libc::{access, c_int, W_OK};
 
-    use std::path::Path;
-
     fn wrapped_access(abs_path: &str, mode: c_int) -> bool {
         // Debug-time check that we're using the API properly
-        assert!(Path::new(&abs_path).is_absolute());
+        assert!(::std::path::Path::new(&abs_path).is_absolute());
 
 
         let ptr = abs_path.as_ptr() as *const i8;
