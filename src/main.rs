@@ -69,7 +69,15 @@ fn main() {
             .display_order(2)
             .about("Rip a Sony PlayStation 2 disc into a PCSX2-compatible \
                    format"))
-        // TODO: cleanrip, retrode
+        .subcommand(SubCommand::with_name("retrode")
+            .display_order(2)
+            .about("Rip a cartridge connected to the PC via a Retrode"))
+        .subcommand(SubCommand::with_name("cleanrip")
+            .display_order(3)
+            .about("Validate and process a disc image dumped by a Wii running CleanRip")
+            .arg(Arg::with_name("just_validate")
+                 .long("--just-validate")
+                 .help("Only run the hash-validation without processing further")))
         .subcommand(SubCommand::with_name("damaged")
             .display_order(3)
             .about("Recover a damaged CD"))
