@@ -2,19 +2,10 @@
 extern crate clap;
 use clap::{App,Arg,SubCommand};
 
+mod validators;
+
 // TODO: Allow overriding in a config file
 const DEFAULT_INPATH: &'static str = "/dev/sr0";
-
-fn validate_set_size(value: String) -> Result<(), String> {
-    if let Ok(num) = value.parse::<u32>() {
-        if num >= 1_u32 {
-            return Ok(());
-        } else {
-            return Err(format!("Set size must be 1 or greater (not \"{}\")", value));
-        }
-    }
-    Err(format!("Set size must be an integer (whole number), not \"{}\"", value))
-}
 
 fn main() {
     App::new("rip_media")
@@ -58,7 +49,7 @@ fn main() {
              .default_value("1")
              // TODO: Find a way to make *clap* mention which argument failed
              //       validation so my validator can be generic
-             .validator(validate_set_size)
+             .validator(validators::set_size)
              .help("Number of discs/cartridges/etc. to process under the same \
                     name (eg. multi-disc games/albums)"))
 
