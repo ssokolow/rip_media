@@ -20,7 +20,7 @@ fn main() {
              .global(true)
              .value_name("PATH")
              .default_value(DEFAULT_INPATH)
-             .validator(validators::inpath)
+             .validator(validators::path_readable)
              .help("Path to source medium (device, image file, etc.)"))
         .arg(Arg::with_name("outdir")
              .short("o")

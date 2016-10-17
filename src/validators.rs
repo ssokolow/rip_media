@@ -1,16 +1,15 @@
 use std::error::Error;
 use std::fs::File;
-use std::path::Path;
+use std::io::ErrorKind;
 
-pub fn inpath(value: String) -> Result<(), String> {
-    // Return a more helpful nonexistant path message than "entity not found"
-    if !Path::new(&value).exists() {
-        return Err(format!("Path does not exist: {}", value));
-    }
-
-    // Test that the given path can be opened for reading and adjust failure messages
+/// Test that the given path can be opened for reading and adjust failure messages
+pub fn path_readable(value: String) -> Result<(), String> {
     File::open(&value).map(|_| ()).map_err(|e|
-        format!("{}: {}", &value, e.description().to_string()))
+        format!("{}: {}", &value, match e.kind() {
+            ErrorKind::NotFound => "path does not exist",
+            _ => e.description()
+        })
+    )
 }
 
 pub fn set_size(value: String) -> Result<(), String> {
