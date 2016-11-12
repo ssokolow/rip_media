@@ -6,3 +6,14 @@ authors = ["Stephan Sokolow <http://www.ssokolow.com/ContactMe>"]
 [dependencies]
 clap = "2"
 libc = "0.2.17"
+
+[profile.release]
+lto = true
+panic = 'abort'
+
+# We need to specify this explicitly so sed can swap the 3 for "z" in
+# release.sh when running with --nightly
+opt-level = 3
+
+[features]
+nightly = []
