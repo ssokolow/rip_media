@@ -1,9 +1,17 @@
 #!/bin/sh
-CHANNEL=stable
+
+# Definitions for setting target platform
+# 32-bit x86 with static libc
 TARGET=i686-unknown-linux-musl
+STRIP=strip
+# OpenPandora
+#TARGET=arm-unknown-linux-gnueabi
+#STRIP=/home/ssokolow/opt/pandora-dev/arm-2011.09/bin/pandora-strip
+
+CHANNEL=stable
+FEATURES=""
 TARGET_PATH="target/$TARGET/release/rip_media"
 STRIP_FLAGS="--strip-unneeded"
-FEATURES=""
 export UPX="--ultra-brute"
 
 # If --nightly, use opt-level=z and alloc_system to cut 115K from the output
@@ -25,7 +33,7 @@ rm "$TARGET_PATH"
 rustup run "$CHANNEL" cargo build --release --target="$TARGET" $FEATURES
 
 # Crunch down the resulting output using strip, sstrip, and upx
-strip $STRIP_FLAGS "$TARGET_PATH"
+"$STRIP" $STRIP_FLAGS "$TARGET_PATH"
 sstrip "$TARGET_PATH"  # from ELFkickers
 upx "$TARGET_PATH"
 
