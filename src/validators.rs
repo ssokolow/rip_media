@@ -11,14 +11,14 @@ const INVALID_FILENAME_CHARS: &'static str = "/\\:*?\"<>|\0";
 /// call in its own module to make the intent more clear when refactoring this file.
 mod access {
     extern crate libc;
-    use self::libc::{access, c_int, W_OK};
+    use self::libc::{access, c_char, c_int, W_OK};
 
     fn wrapped_access(abs_path: &str, mode: c_int) -> bool {
         // Debug-time check that we're using the API properly
         assert!(::std::path::Path::new(&abs_path).is_absolute());
 
 
-        let ptr = abs_path.as_ptr() as *const i8;
+        let ptr = abs_path.as_ptr() as *const c_char;
 
         // I'm willing to risk using unsafe because access() shouldn't mutate anything
         unsafe {
