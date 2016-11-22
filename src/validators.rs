@@ -15,12 +15,16 @@ mod access {
 
     fn wrapped_access(abs_path: &str, mode: c_int) -> bool {
         // Debug-time check that we're using the API properly
+        // (Debug-only because relying on it in a release build grants a false sense
+        // of security and, besides, access() is only really safe to use as a way to
+        // abort early for convenience on errors that would still be safe anyway.)
         assert!(::std::path::Path::new(&abs_path).is_absolute());
 
 
         let ptr = abs_path.as_ptr() as *const c_char;
 
-        // I'm willing to risk using unsafe because access() shouldn't mutate anything
+        // I'm only willing to trust my ability to use unsafe correctly
+        // because access() shouldn't mutate anything
         unsafe {
             // Test if we **should** be able to write to the given path
             if access(ptr, mode) == 0 { return true; }
@@ -28,11 +32,18 @@ mod access {
         return false;
     }
 
+    /// API suitable for a lightweight "fail early" check for whether a target
+    /// directory is writable without worry that a fancy filesystem may be configured
+    /// to allow write but deny deletion for the resulting test file.
+    /// (It's been seen in the wild)
+    ///
     /// Use a name which helps to drive home the security hazard in access() abuse
     /// and hide the mode flag behind an abstraction so the user can't mess up unsafe{}
     /// (eg. On my system, "/" erroneously returns success)
     pub fn probably_writable(path: &str) -> bool { wrapped_access(path, W_OK) }
 }
+
+// TODO: Can (and should) I rewrite these to take &str instead of String?
 
 /// Test that the given path **should** be writable
 /// TODO: Unit test **HEAVILY** (Has unsafe block. Here be dragons!)
