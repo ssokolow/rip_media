@@ -107,3 +107,17 @@ pub fn set_size(value: String) -> Result<(), String> {
     }
     Err(format!("Set size must be an integer (whole number), not \"{}\"", value))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::path_readable;
+
+    #[test]
+    /// Can override DEFAULT_INPATH when specifying -i before the subcommand
+    fn path_readable_basic_functionality() {
+        assert!(path_readable("/".to_string()).is_ok());
+        assert!(path_readable("/etc/passwd".to_string()).is_ok());
+        assert!(path_readable("/etc/shadow".to_string()).is_err());
+        assert!(path_readable("/nonexistant_test_path".to_string()).is_err());
+    }
+}
