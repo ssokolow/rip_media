@@ -46,46 +46,6 @@ fn arg_from_usage(usage: &str) -> Arg {
         .empty_values(false)
 }
 
-#[test]
-/// Can override DEFAULT_INPATH when specifying -i before the subcommand
-fn test_can_override_inpath_before() {
-    let defaults = AppConfig::default();
-    let matches = make_clap_parser(&defaults).get_matches_from(&["rip_media", "-i/", "cd"]);
-    let inpath = matches.value_of("inpath").unwrap();
-    assert!(inpath == "/", "\"-i/ cd\" should have produced \"/\" \
-                                   but actually produced \"{}\"", inpath)
-}
-
-#[test]
-/// Can override DEFAULT_INPATH when specifying -i after the subcommand
-fn test_can_override_inpath_after() {
-    let defaults = AppConfig::default();
-    let matches = make_clap_parser(&defaults).get_matches_from(&["rip_media", "cd", "-i/"]);
-    let inpath = matches.value_of("inpath").unwrap();
-    assert!(inpath == "/", "\"cd -i/\" should have produced \"/\" \
-                                   but actually produced \"{}\"", inpath)
-}
-
-#[test]
-/// Validator doesn't get run on the default inpath if -i was specified
-fn test_only_validates_inpath_to_be_used_before() {
-    let defaults = AppConfig { inpath: Cow::Borrowed("/etc/shadow") };
-    let matches = make_clap_parser(&defaults).get_matches_from(&["rip_media", "-i/", "cd"]);
-    let inpath = matches.value_of("inpath").unwrap();
-    assert!(inpath == "/", "\"cd -i/\" should have produced \"/\" \
-                                   but actually produced \"{}\"", inpath)
-}
-
-#[test]
-/// Validator doesn't get run on the default inpath if -i was specified
-fn test_only_validates_inpath_to_be_used_after() {
-    let defaults = AppConfig { inpath: Cow::Borrowed("/etc/shadow") };
-    let matches = make_clap_parser(&defaults).get_matches_from(&["rip_media", "cd", "-i/"]);
-    let inpath = matches.value_of("inpath").unwrap();
-    assert!(inpath == "/", "\"cd -i/\" should have produced \"/\" \
-                                   but actually produced \"{}\"", inpath)
-}
-
 /// Initialize the clap parser to be used by main() or unit tests
 fn make_clap_parser<'a, 'b>(defaults: &'a AppConfig<'b>) -> App<'a, 'a> where 'a: 'b {
     App::new("rip_media")
@@ -168,4 +128,50 @@ fn main() {
     //      ...call the ripping command appropriate to the subcommand
 }
 
+// Tests go below the code where they'll be out of the way when not the target of attention
+#[cfg(test)]
+mod tests {
+    use std::borrow::Cow;
+    use super::{AppConfig, make_clap_parser};
+
+    #[test]
+    /// Can override DEFAULT_INPATH when specifying -i before the subcommand
+    fn test_can_override_inpath_before() {
+        let defaults = AppConfig::default();
+        let matches = make_clap_parser(&defaults).get_matches_from(&["rip_media", "-i/", "cd"]);
+        let inpath = matches.value_of("inpath").unwrap();
+        assert!(inpath == "/", "\"-i/ cd\" should have produced \"/\" \
+                                       but actually produced \"{}\"", inpath)
+    }
+
+    #[test]
+    /// Can override DEFAULT_INPATH when specifying -i after the subcommand
+    fn test_can_override_inpath_after() {
+        let defaults = AppConfig::default();
+        let matches = make_clap_parser(&defaults).get_matches_from(&["rip_media", "cd", "-i/"]);
+        let inpath = matches.value_of("inpath").unwrap();
+        assert!(inpath == "/", "\"cd -i/\" should have produced \"/\" \
+                                       but actually produced \"{}\"", inpath)
+    }
+
+    #[test]
+    /// Validator doesn't get run on the default inpath if -i was specified
+    fn test_only_validates_inpath_to_be_used_before() {
+        let defaults = AppConfig { inpath: Cow::Borrowed("/etc/shadow") };
+        let matches = make_clap_parser(&defaults).get_matches_from(&["rip_media", "-i/", "cd"]);
+        let inpath = matches.value_of("inpath").unwrap();
+        assert!(inpath == "/", "\"cd -i/\" should have produced \"/\" \
+                                       but actually produced \"{}\"", inpath)
+    }
+
+    #[test]
+    /// Validator doesn't get run on the default inpath if -i was specified
+    fn test_only_validates_inpath_to_be_used_after() {
+        let defaults = AppConfig { inpath: Cow::Borrowed("/etc/shadow") };
+        let matches = make_clap_parser(&defaults).get_matches_from(&["rip_media", "cd", "-i/"]);
+        let inpath = matches.value_of("inpath").unwrap();
+        assert!(inpath == "/", "\"cd -i/\" should have produced \"/\" \
+                                       but actually produced \"{}\"", inpath)
+    }
+}
 // vim: set sw=4 sts=4 :
