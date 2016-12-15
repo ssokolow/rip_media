@@ -1,3 +1,9 @@
+//! [Eventually a] simple, robust script for dumping backups of various types of media
+// Make clippy very strict. I'll opt out of the false positives as I hit them
+#![cfg_attr(feature="cargo-clippy", warn(clippy_pedantic))]
+#![cfg_attr(feature="cargo-clippy", warn(indexing_slicing))]
+#![cfg_attr(feature="cargo-clippy", warn(integer_arithmetic))]
+
 // Use musl's malloc when building on nightly for maximum size reduction
 #![cfg_attr(feature="nightly", feature(alloc_system))]
 #[cfg(feature="nightly")]
@@ -11,12 +17,15 @@ use std::borrow::Cow;
 extern crate clap;
 use clap::{App,AppSettings,Arg,SubCommand};
 
+/// Custom clap-rs input validators
 mod validators;
 
 // TODO: Allow overriding in a config file
+/// Default path to read from if none is specified
 const DEFAULT_INPATH: &'static str = "/dev/sr0";
 /// Allow different defaults to be passed to unit tests
 struct AppConfig<'a> {
+    /// Device/file to dump from
     inpath: Cow<'a, str>,
 }
 
@@ -38,7 +47,7 @@ impl<'a> Default for AppConfig<'a> {
 /// See Also:
 ///  http://blog.ssokolow.com/archives/2016/10/17/a-more-formal-way-to-think-about-validity-of-input-data/
 
-/// Wrapper for Arg::from_usage to deduplicate setting a few things all args have
+/// Wrapper for `Arg::from_usage` to deduplicate setting a few things all args have
 /// TODO: Does Clap provide a more proper way to set defaults than this?
 fn arg_from_usage(usage: &str) -> Arg {
     Arg::from_usage(usage)
@@ -112,6 +121,7 @@ fn make_clap_parser<'a, 'b>(defaults: &'a AppConfig<'b>) -> App<'a, 'a> where 'a
                 .about("Recover a damaged CD")])
 }
 
+/// Program entry point
 fn main() {
     // TODO: Move all of this parsing into its own function so I can unit test it
     let defaults = AppConfig::default();

@@ -13,6 +13,8 @@ mod access {
     extern crate libc;
     use self::libc::{access, c_char, c_int, W_OK};
 
+    /// Lower-level safety wrapper shared by all probably_* functions I define
+    #[cfg_attr(feature="cargo-clippy", allow(needless_return))]
     fn wrapped_access(abs_path: &str, mode: c_int) -> bool {
         // Debug-time check that we're using the API properly
         // (Debug-only because relying on it in a release build grants a false sense
@@ -37,7 +39,7 @@ mod access {
     /// to allow write but deny deletion for the resulting test file.
     /// (It's been seen in the wild)
     ///
-    /// Use a name which helps to drive home the security hazard in access() abuse
+    /// Uses a name which helps to drive home the security hazard in access() abuse
     /// and hide the mode flag behind an abstraction so the user can't mess up unsafe{}
     /// (eg. On my system, "/" erroneously returns success)
     pub fn probably_writable(path: &str) -> bool { wrapped_access(path, W_OK) }
