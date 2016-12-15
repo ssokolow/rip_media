@@ -16,11 +16,14 @@ use std::borrow::Cow;
 #[macro_use]
 extern crate clap;
 use clap::{App,AppSettings,Arg,SubCommand};
+// TODO: https://github.com/slog-rs/slog
+//       https://siciarz.net/24-days-rust-clap/
 
 /// Custom clap-rs input validators
 mod validators;
 
-// TODO: Allow overriding in a config file
+// TODO: Allow overriding in a config file (Perhaps via .env with
+//       https://siciarz.net/24-days-rust-environment-variables)
 /// Default path to read from if none is specified
 const DEFAULT_INPATH: &'static str = "/dev/sr0";
 /// Allow different defaults to be passed to unit tests

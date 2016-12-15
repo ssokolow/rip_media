@@ -10,9 +10,13 @@ const INVALID_FILENAME_CHARS: &'static str = "/\\:*?\"<>|\0";
 /// because of how public/private access control works, so isolate the access() libc
 /// call in its own module to make the intent more clear when refactoring this file.
 mod access {
+    /// TODO: Make this wrapper portable
+    ///       https://doc.rust-lang.org/book/conditional-compilation.html
     extern crate libc;
     use self::libc::{access, c_char, c_int, W_OK};
 
+    // TODO: Figure out how to make this accept &str/Path/PathBuf to reduce conversion
+    // (Perhaps AsRef<OsStr> as in Path::new, with http://stackoverflow.com/q/38948669/435253)
     /// Lower-level safety wrapper shared by all probably_* functions I define
     #[cfg_attr(feature="cargo-clippy", allow(needless_return))]
     fn wrapped_access(abs_path: &str, mode: c_int) -> bool {
@@ -87,6 +91,8 @@ fn is_bad_for_fname(c: &char) -> bool {
 /// Test that the given path can be opened for reading and adjust failure messages
 pub fn path_readable(value: String) -> Result<(), String> {
     File::open(&value).map(|_| ()).map_err(|e|
+        // TODO: Return a custom error type so we're not risking stringly-typed error matching
+        //       https://brson.github.io/2016/11/30/starting-with-error-chain
         format!("{}: {}", &value, match e.kind() {
             ErrorKind::NotFound => "path does not exist",
             // TODO: Return Ok(()) for ErrorKind::Other (we can wait/retry later)
