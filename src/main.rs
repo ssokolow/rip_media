@@ -1,4 +1,37 @@
 //! [Eventually a] simple, robust script for dumping backups of various types of media
+/*
+ * TODO: Implement a collection of finite state machines to handle things like
+ *       manipulating CD/DVD drives so I can get as much compile-time
+ *       correctness verification as possible.
+ *       - http://graphviz.org/content/fsm  (for iterating on a design)
+ *       - https://hoverbear.org/2016/10/12/rust-state-machine-pattern/
+ *
+ * TODO: https://andybarron.github.io/docs/preferences-rs/preferences/
+ *
+ * TODO: Decide how to handle copying from RETRODE_INPATH with maximum reliability
+ *       - https://doc.rust-lang.org/std/io/fn.copy.html
+ *       - https://doc.rust-lang.org/std/fs/fn.copy.html
+ *
+ * TODO: Update clap and then add support for building completion definitions:
+ *       - https://blog.clap.rs/complete-me/#completionscriptgenerationinclap
+ *
+ * TODO: Eventually implement a crate which allows me to avoid calling
+ *       subprocesses for things like opening/closing/locking/unlocking the
+ *       CD/DVD tray and querying status and disc metadata:
+ *       - http://blackbeam.org/doc/libc/fn.ioctl.html
+ *       - https://github.com/cmr/ioctl
+ *       - https://nix-rust.github.io/nix/nix/macro.ioctl!.html
+ *       - https://www.kernel.org/doc/Documentation/ioctl/cdrom.txt
+ *       - http://www.tldp.org/HOWTO/archived/SCSI-Programming-HOWTO/
+ *       - http://advancedlinuxprogramming.com/alp-folder/
+ *       - https://stackoverflow.com/questions/1564515/how-to-eject-the-cd-drive-on-linux-using-c
+ *       - One of the pages I ran across pointed to this URL for /usr/bin/eject's code.
+ *         https://github.com/karelzak/util-linux/blob/master/sys-utils/eject.c
+ *         (Wikipedia says it'll be under either GPL2 or GPL2+ so I could translate some code
+ *         to Rust if I decide to GPL my crate)
+ *         https://en.wikipedia.org/wiki/Util-linux
+ */
+
 // Make clippy very strict. I'll opt out of the false positives as I hit them
 #![cfg_attr(feature="cargo-clippy", warn(clippy_pedantic))]
 #![cfg_attr(feature="cargo-clippy", warn(indexing_slicing))]
@@ -9,23 +42,28 @@
 #[cfg(feature="nightly")]
 extern crate alloc_system;
 
+
 /// libstd imports
 use std::borrow::Cow;
 
 /// clap-rs imports
 #[macro_use]
 extern crate clap;
-use clap::{App,AppSettings,Arg,SubCommand};
+use clap::{App, AppSettings, Arg, SubCommand};
 // TODO: https://github.com/slog-rs/slog
 //       https://siciarz.net/24-days-rust-clap/
 
 /// Custom clap-rs input validators
 mod validators;
 
+// TODO: The retrode path should incorporate the current username
 // TODO: Allow overriding in a config file (Perhaps via .env with
 //       https://siciarz.net/24-days-rust-environment-variables)
 /// Default path to read from if none is specified
 const DEFAULT_INPATH: &'static str = "/dev/sr0";
+// const RETRODE_INPATH: &'static str = "/media/ssokolow/RETRODE";
+// const VOLUME_SIZE: u64 = 4480 * 1024 * 1024;  // DVD+R, given ISO+UDF overhead
+
 /// Allow different defaults to be passed to unit tests
 struct AppConfig<'a> {
     /// Device/file to dump from
@@ -132,7 +170,7 @@ fn main() {
 
     match matches.subcommand_name() {
         Some(e) => println!("TODO: Implement subcommand: {}", e),
-        None => unreachable!()
+        None => unreachable!(),
     }
 
     // TODO:
@@ -168,6 +206,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     /// Validator doesn't get run on the default inpath if -i was specified
     fn test_only_validates_inpath_to_be_used_before() {
         let defaults = AppConfig { inpath: Cow::Borrowed("/etc/shadow") };
@@ -178,6 +217,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     /// Validator doesn't get run on the default inpath if -i was specified
     fn test_only_validates_inpath_to_be_used_after() {
         let defaults = AppConfig { inpath: Cow::Borrowed("/etc/shadow") };
