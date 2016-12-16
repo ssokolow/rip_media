@@ -192,8 +192,8 @@ mod tests {
         let defaults = AppConfig::default();
         let matches = make_clap_parser(&defaults).get_matches_from(&["rip_media", "-i/", "cd"]);
         let inpath = matches.value_of("inpath").unwrap();
-        assert!(inpath == "/", "\"-i/ cd\" should have produced \"/\" \
-                                       but actually produced \"{}\"", inpath)
+        assert!(inpath == "/",
+                "\"-i/ cd\" should have produced \"/\" but actually produced \"{}\"", inpath)
     }
 
     #[test]
@@ -202,8 +202,8 @@ mod tests {
         let defaults = AppConfig::default();
         let matches = make_clap_parser(&defaults).get_matches_from(&["rip_media", "cd", "-i/"]);
         let inpath = matches.value_of("inpath").unwrap();
-        assert!(inpath == "/", "\"cd -i/\" should have produced \"/\" \
-                                       but actually produced \"{}\"", inpath)
+        assert!(inpath == "/",
+                "\"cd -i/\" should have produced \"/\" but actually produced \"{}\"", inpath)
     }
 
     #[test]
@@ -213,8 +213,8 @@ mod tests {
         let defaults = AppConfig { inpath: Cow::Borrowed("/etc/shadow") };
         let matches = make_clap_parser(&defaults).get_matches_from(&["rip_media", "-i/", "cd"]);
         let inpath = matches.value_of("inpath").unwrap();
-        assert!(inpath == "/", "\"cd -i/\" should have produced \"/\" \
-                                       but actually produced \"{}\"", inpath)
+        assert!(inpath == "/",
+                "\"cd -i/\" should have produced \"/\" but actually produced \"{}\"", inpath)
     }
 
     #[test]
@@ -224,8 +224,8 @@ mod tests {
         let defaults = AppConfig { inpath: Cow::Borrowed("/etc/shadow") };
         let matches = make_clap_parser(&defaults).get_matches_from(&["rip_media", "cd", "-i/"]);
         let inpath = matches.value_of("inpath").unwrap();
-        assert!(inpath == "/", "\"cd -i/\" should have produced \"/\" \
-                                       but actually produced \"{}\"", inpath)
+        assert!(inpath == "/",
+                "\"cd -i/\" should have produced \"/\" but actually produced \"{}\"", inpath)
     }
 }
 // vim: set sw=4 sts=4 :
