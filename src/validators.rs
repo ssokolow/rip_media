@@ -31,11 +31,7 @@ mod access {
 
         // I'm only willing to trust my ability to use unsafe correctly
         // because access() shouldn't mutate anything
-        unsafe {
-            // Test if we **should** be able to write to the given path
-            if access(ptr, mode) == 0 { return true; }
-        }
-        return false;
+        unsafe { access(ptr, mode) == 0 }
     }
 
     /// API suitable for a lightweight "fail early" check for whether a target
