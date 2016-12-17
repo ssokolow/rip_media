@@ -12,6 +12,7 @@ const INVALID_FILENAME_CHARS: &'static str = "/\\:*?\"<>|\0";
 mod access {
     /// TODO: Make this wrapper portable
     ///       https://doc.rust-lang.org/book/conditional-compilation.html
+    /// TODO: Consider making `wrapped_access` typesafe using the `bitflags` crate `clap` pulled in
     extern crate libc;
     use self::libc::{access, c_char, c_int, W_OK};
 
