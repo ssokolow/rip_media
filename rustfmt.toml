@@ -15,8 +15,6 @@ where_density = "Compressed"
 single_line_if_else_max_width = 100
 
 # I happen to like /* this */ for multi-line comments, thank you very much
-# See also: https://github.com/rust-lang-nursery/rustfmt/issues/1240
-#           https://github.com/rust-lang-nursery/rustfmt/issues/1243
 normalize_comments = false
 
 # -----------------------------------------------------------------------------
@@ -30,6 +28,7 @@ normalize_comments = false
 
 # XXX: This is useless to me while it's case-sensitive.
 #      See https://github.com/rust-lang-nursery/rustfmt/issues/1242
+#          https://github.com/rust-lang-nursery/fmt-rfcs/issues/24
 #reorder_imported_names = true
 
 # XXX: Rustfmt needs a length/complexity-controlled mode for fn_single_line
