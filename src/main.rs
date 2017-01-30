@@ -38,6 +38,9 @@
 #![cfg_attr(feature="cargo-clippy", warn(indexing_slicing))]
 #![cfg_attr(feature="cargo-clippy", warn(integer_arithmetic))]
 
+// Make rustc's built-in lints more strict (I'll opt back out selectively)
+#![warn(warnings)]
+
 // Use musl's malloc when building on nightly for maximum size reduction
 #![cfg_attr(feature="nightly", feature(alloc_system))]
 #[cfg(feature="nightly")]
