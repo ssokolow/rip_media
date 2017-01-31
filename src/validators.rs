@@ -14,25 +14,27 @@ mod access {
     ///       https://doc.rust-lang.org/book/conditional-compilation.html
     /// TODO: Consider making `wrapped_access` typesafe using the `bitflags` crate `clap` pulled in
     extern crate libc;
-    use self::libc::{access, c_char, c_int, W_OK};
+    use self::libc::{access, c_int, W_OK};
+    use std::ffi::CString;
+    use std::os::unix::ffi::OsStrExt;
+    use std::path::Path;
 
-    // TODO: Figure out how to make this accept &str/Path/PathBuf to reduce conversion
-    // (Perhaps AsRef<OsStr> as in Path::new, with http://stackoverflow.com/q/38948669/435253)
     /// Lower-level safety wrapper shared by all probably_* functions I define
-    #[cfg_attr(feature="cargo-clippy", allow(needless_return))]
-    fn wrapped_access(abs_path: &str, mode: c_int) -> bool {
+    /// TODO: Unit test **HEAVILY** (Has unsafe block. Here be dragons!)
+    fn wrapped_access(abs_path: &Path, mode: c_int) -> bool {
         // Debug-time check that we're using the API properly
         // (Debug-only because relying on it in a release build grants a false sense
         // of security and, besides, access() is only really safe to use as a way to
         // abort early for convenience on errors that would still be safe anyway.)
-        assert!(::std::path::Path::new(&abs_path).is_absolute());
+        assert!(abs_path.is_absolute());
 
-
-        let ptr = abs_path.as_ptr() as *const c_char;
-
-        // I'm only willing to trust my ability to use unsafe correctly
-        // because access() shouldn't mutate anything
-        unsafe { access(ptr, mode) == 0 }
+        // Make a null-terminated copy of the path for libc
+        match CString::new(abs_path.as_os_str().as_bytes()) {
+            // If we succeed, call access(2), convert the result into bool, and return it
+            Ok(cstr) => unsafe { access(cstr.as_ptr(), mode) == 0 },
+            // If we fail, return false because it can't be an access()ible path
+            Err(_) => false,
+        }
     }
 
     /// API suitable for a lightweight "fail early" check for whether a target
@@ -43,13 +45,14 @@ mod access {
     /// Uses a name which helps to drive home the security hazard in access() abuse
     /// and hide the mode flag behind an abstraction so the user can't mess up unsafe{}
     /// (eg. On my system, "/" erroneously returns success)
-    pub fn probably_writable(path: &str) -> bool { wrapped_access(path, W_OK) }
+    pub fn probably_writable<P: AsRef<Path> + ?Sized>(path: &P) -> bool {
+        wrapped_access(path.as_ref(), W_OK)
+    }
 }
 
 // TODO: Can (and should) I rewrite these to take &str instead of String?
 
 /// Test that the given path **should** be writable
-/// TODO: Unit test **HEAVILY** (Has unsafe block. Here be dragons!)
 pub fn dir_writable(value: String) -> Result<(), String> {
     let path = Path::new(&value);
 
