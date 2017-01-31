@@ -4,6 +4,7 @@ use std::io::ErrorKind;
 use std::path::Path;
 
 /// Characters invalid under NTFS in the Win32 namespace
+/// TODO: Probably best to impose FAT32 limits instead in case of flash drives
 const INVALID_FILENAME_CHARS: &'static str = "/\\:*?\"<>|\0";
 
 /// The effects of unsafety cannot be isolated with more granularity than a
@@ -52,8 +53,6 @@ mod access {
         wrapped_access(path.as_ref(), W_OK)
     }
 }
-
-// TODO: Can (and should) I rewrite these to take &str instead of String?
 
 /// Test that the given path **should** be writable
 pub fn dir_writable(value: String) -> Result<(), String> {
