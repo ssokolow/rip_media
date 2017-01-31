@@ -6,13 +6,15 @@ use std::path::Path;
 /// Characters invalid under NTFS in the Win32 namespace
 const INVALID_FILENAME_CHARS: &'static str = "/\\:*?\"<>|\0";
 
-/// The effects of unsafety cannot be isolated with more granularity than a module scope
-/// because of how public/private access control works, so isolate the access() libc
-/// call in its own module to make the intent more clear when refactoring this file.
+/// The effects of unsafety cannot be isolated with more granularity than a
+/// module scope because of how public/private access control works, so isolate
+/// the access() libc call in its own module to make the intent more clear when
+/// refactoring this file.
 mod access {
     /// TODO: Make this wrapper portable
     ///       https://doc.rust-lang.org/book/conditional-compilation.html
-    /// TODO: Consider making `wrapped_access` typesafe using the `bitflags` crate `clap` pulled in
+    /// TODO: Consider making `wrapped_access` typesafe using the `bitflags`
+    ///       crate `clap` pulled in
     extern crate libc;
     use self::libc::{access, c_int, W_OK};
     use std::ffi::CString;
@@ -23,9 +25,10 @@ mod access {
     /// TODO: Unit test **HEAVILY** (Has unsafe block. Here be dragons!)
     fn wrapped_access(abs_path: &Path, mode: c_int) -> bool {
         // Debug-time check that we're using the API properly
-        // (Debug-only because relying on it in a release build grants a false sense
-        // of security and, besides, access() is only really safe to use as a way to
-        // abort early for convenience on errors that would still be safe anyway.)
+        // (Debug-only because relying on it in a release build grants a false
+        // sense of security and, besides, access() is only really safe to use
+        // as a way to abort early for convenience on errors that would still
+        // be safe anyway.)
         assert!(abs_path.is_absolute());
 
         // Make a null-terminated copy of the path for libc
@@ -38,13 +41,13 @@ mod access {
     }
 
     /// API suitable for a lightweight "fail early" check for whether a target
-    /// directory is writable without worry that a fancy filesystem may be configured
-    /// to allow write but deny deletion for the resulting test file.
+    /// directory is writable without worry that a fancy filesystem may be
+    /// configured to allow write but deny deletion for the resulting test file.
     /// (It's been seen in the wild)
     ///
-    /// Uses a name which helps to drive home the security hazard in access() abuse
-    /// and hide the mode flag behind an abstraction so the user can't mess up unsafe{}
-    /// (eg. On my system, "/" erroneously returns success)
+    /// Uses a name which helps to drive home the security hazard in access()
+    /// abuse and hide the mode flag behind an abstraction so the user can't
+    /// mess up unsafe{} (eg. On my system, "/" erroneously returns success)
     pub fn probably_writable<P: AsRef<Path> + ?Sized>(path: &P) -> bool {
         wrapped_access(path.as_ref(), W_OK)
     }
@@ -57,7 +60,7 @@ pub fn dir_writable(value: String) -> Result<(), String> {
     let path = Path::new(&value);
 
     // Test that the path is a directory
-    // (Check this before, not after, as an extra safety guard on the unsafe block)
+    // (Check before, not after, as an extra safety guard on the unsafe block)
     if !path.is_dir() {
         return Err(format!("Not a directory: {}", value));
     }
@@ -75,7 +78,7 @@ pub fn dir_writable(value: String) -> Result<(), String> {
 /// Test that the given string doesn't contain any `INVALID_FILENAME_CHARS`
 /// Adapted from http://stackoverflow.com/a/30791678
 ///
-/// TODO: Rethink this to properly handle non-POSIX target filesystems under POSIX OSes
+/// TODO: Is there a way to ask the filesystem itself whether a name is OK?
 pub fn filename_valid(value: String) -> Result<(), String> {
     if value.chars().all(|c| !is_bad_for_fname(&c)) {
         return Ok(());
@@ -91,7 +94,7 @@ fn is_bad_for_fname(c: &char) -> bool {
 /// Test that the given path can be opened for reading and adjust failure messages
 pub fn path_readable(value: String) -> Result<(), String> {
     File::open(&value).map(|_| ()).map_err(|e|
-        // TODO: Return a custom error type so we're not risking stringly-typed error matching
+        // TODO: Custom error type to avoid risking stringly-typed matching
         //       https://brson.github.io/2016/11/30/starting-with-error-chain
         format!("{}: {}", &value, match e.kind() {
             ErrorKind::NotFound => "path does not exist",
@@ -102,10 +105,10 @@ pub fn path_readable(value: String) -> Result<(), String> {
     )
 }
 
-/// TODO: Find a way to make *clap* mention which argument failed
-///       validation so my validator can be generic
+/// TODO: Find a way to make *clap* mention which argument failed validation
+///       so my validator can be generic
 pub fn set_size(value: String) -> Result<(), String> {
-    // I can't imagine needing more than u8, but I see no harm in being flexible
+    // I can't imagine needing more than u8... no harm in being flexible here
     if let Ok(num) = value.parse::<u32>() {
         if num >= 1_u32 {
             return Ok(());
