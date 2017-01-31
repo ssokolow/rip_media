@@ -153,6 +153,9 @@ fn make_clap_parser<'a, 'b>(defaults: &'a AppConfig<'b>) -> App<'a, 'a> where 'a
             SubCommand::with_name("retrode")
                 .display_order(2)
                 .about("Rip a cartridge connected to the PC via a Retrode"),
+            SubCommand::with_name("umd")
+                .display_order(2)
+                .about("Rip a UMD via a USB-connected PSP running custom firmware"),
             SubCommand::with_name("cleanrip")
                 .display_order(3)
                 .about("Validate and process a disc image dumped by a Wii running \
