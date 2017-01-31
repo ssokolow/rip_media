@@ -60,6 +60,8 @@ use clap::{App, AppSettings, Arg, SubCommand};
 /// Custom clap-rs input validators
 mod validators;
 
+mod platform;
+
 // TODO: The retrode path should incorporate the current username
 // TODO: Allow overriding in a config file (Perhaps via .env with
 //       https://siciarz.net/24-days-rust-environment-variables)
