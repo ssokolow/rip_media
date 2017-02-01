@@ -44,6 +44,9 @@
  *       - Support generating ISO/OGG/CUE sets for DOSBox.
  */
 
+// error_chain recursion adjustment
+#![recursion_limit = "1024"]
+
 // Make clippy very strict. I'll opt out of the false positives as I hit them
 #![cfg_attr(feature="cargo-clippy", warn(clippy_pedantic))]
 #![cfg_attr(feature="cargo-clippy", warn(indexing_slicing))]
@@ -57,6 +60,15 @@
 #[cfg(feature="nightly")]
 extern crate alloc_system;
 
+/// error_chain imports
+#[macro_use]
+extern crate error_chain;
+
+mod errors {
+    error_chain!{}
+}
+
+use errors::*;
 
 /// libstd imports
 use std::borrow::Cow;

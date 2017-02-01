@@ -1,7 +1,8 @@
 //! Abstraction around the underlying OS functionality
 
+use errors::*;
+
 use std::borrow::Cow;
-use std::error::Error;
 use std::ffi::{OsString, OsStr};
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
@@ -22,9 +23,7 @@ macro_rules! subprocess_call {
     ( $cmd:expr, $( $arg:expr ), * ) => {
         Command::new($cmd)
                 $(.arg($arg))*
-                .status()
-                .map(|_| ()).map_err(|e| e.description().to_owned())
-                // TODO: Set up error-chain instead
+                .status().map(|_| ())
     }
 }
 
@@ -33,9 +32,9 @@ macro_rules! read_exact_at {
     ( $file:expr, $bytes:expr, $offset:expr ) => {
         {
             let mut buf = [0; $bytes];
-            // TODO: error-chain
-            $file.seek($offset).map_err(|e| e.description().to_owned())?;
-            $file.read_exact(&mut buf).map_err(|e| e.description().to_owned())?;
+            $file.seek($offset).chain_err(|| "Failed to seek")?;
+            $file.read_exact(&mut buf)
+                 .chain_err(|| format!("Could not read {} bytes from {:?}", $bytes, $file))?;
             buf
         }
     }
@@ -45,18 +44,18 @@ macro_rules! read_exact_at {
 /// TODO: Custom error type
 pub trait MediaProvider {
     /// Eject the media if the hardware supports it
-    fn eject(&mut self) -> Result<(), String>;
+    fn eject(&mut self) -> Result<()>;
 
     /// Unmount the media if mounted
-    fn unmount(&mut self) -> Result<(), String>;
+    fn unmount(&mut self) -> Result<()>;
 
     /// Retrieve the volume label, if one is set
-    fn volume_label(&self) -> Result<String, String>;
+    fn volume_label(&self) -> Result<String>;
 
     /// Wait up to `timeout` seconds for the disc to be ready
     ///
     /// If `close_tray` is `true` and the device is capable, load the media.
-    fn wait_for_ready(&self, timeout: &Duration, close_tray: bool) -> Result<(), String>;
+    fn wait_for_ready(&self, timeout: &Duration, close_tray: bool) -> Result<()>;
 }
 
 /// Interface for platform providers which support exposing raw device paths
@@ -69,7 +68,7 @@ pub trait RawMediaProvider {
 /// High-level interface for notifying the user via various system APIs
 pub trait NotificationProvider {
     /// Play the given audio file, if supported
-    fn play_sound<P: AsRef<Path> + ?Sized>(&self, path: &P) -> Result<(), String>;
+    fn play_sound<P: AsRef<Path> + ?Sized>(&self, path: &P) -> Result<()>;
 }
 
 /// `MediaProvider` implementation which operates on (possibly GUI-less) Linux systems
@@ -84,15 +83,17 @@ impl<'a> RawMediaProvider for LinuxPlatformProvider<'a> {
 }
 
 impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
-    fn eject(&mut self) -> Result<(), String> {
+    fn eject(&mut self) -> Result<()> {
         subprocess_call!("eject", &self.device)
+            .chain_err(|| format!("Could not eject {}", &self.device.to_string_lossy()))
     }
 
-    fn unmount(&mut self) -> Result<(), String> {
+    fn unmount(&mut self) -> Result<()> {
         subprocess_call!("umount", &self.device)
+            .chain_err(|| format!("Could not unmount {}", &self.device.to_string_lossy()))
     }
 
-    fn volume_label(&self) -> Result<String, String> {
+    fn volume_label(&self) -> Result<String> {
         // Allow Linux a chance to read the name (eg. for post-ISO9660 stuff)
         if let Ok(label) = Command::new("blkid")
                         .args(&["-s", "LABEL", "-o", "value"]).arg(&self.device).output()
@@ -102,7 +103,8 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
         }
 
         // Fall back to reading the raw ISO9660 header
-        let mut dev = File::open(&self.device).map_err(|e| e.description().to_owned())?;
+        let mut dev = File::open(&self.device).chain_err(
+            || format!("Could not open for reading: {}", self.device.to_string_lossy()))?;
 
         // Safety check for non-ISO9660 filesystems
         // http://www.cnwrecovery.co.uk/html/iso9660_disks.html
@@ -117,10 +119,11 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
                   .split('\0').next().unwrap_or("").trim().to_owned())
     }
 
-    fn wait_for_ready(&self, timeout: &Duration, close_tray: bool) -> Result<(), String> {
+    fn wait_for_ready(&self, timeout: &Duration, close_tray: bool) -> Result<()> {
         if close_tray {
             // TODO: What *should* I do on failure here?
-            subprocess_call!("eject", "-t", &self.device);
+            subprocess_call!("eject", "-t", &self.device)
+                .chain_err(|| format!("Could load media for {}", &self.device.to_string_lossy()));
         }
 
         let start_time = Instant::now();
@@ -133,12 +136,13 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
             }
             sleep(Duration::new(1, 0))
         }
-        Err("Timed out".to_string())  // TODO: Custom error type
+        bail!("Timed out")
     }
 }
 
 impl<'a> NotificationProvider for LinuxPlatformProvider<'a> {
-    fn play_sound<P: AsRef<Path> + ?Sized>(&self, path: &P) -> Result<(), String> {
+    fn play_sound<P: AsRef<Path> + ?Sized>(&self, path: &P) -> Result<()> {
         subprocess_call!("play", "-q", path.as_ref())
+                .chain_err(|| format!("Could not play {}", path.as_ref().to_string_lossy()))
     }
 }
