@@ -1,4 +1,4 @@
-//! [Eventually a] simple, robust script for dumping backups of various types of media
+//! [Eventually a] simple, robust script for making backups of various types of media
 
 /*
  * TODO: Implement a collection of finite state machines to handle things like
@@ -31,6 +31,17 @@
  *         (Wikipedia says it'll be under either GPL2 or GPL2+ so I could translate some code
  *         to Rust if I decide to GPL my crate)
  *         https://en.wikipedia.org/wiki/Util-linux
+ *
+ * TODO:
+ *       - Come up with a catchy name like "cdpreserve" but for all types of media.
+ *       - Come up with a tagline for the website, like
+ *         "All matter decays. Information doesn't have to."
+ *       - Actually use the logging system
+ *       - Decide how to choose volume names vs. a counter w/i --set-size
+ *       - Hook up the option to discard the .toc file
+ *       - Add an option to generate the setup I use in DOSBox EX on my
+ *         OpenPandora. ("Ask for name, sub(' ', '.'), 01.bin/01.cue inside")
+ *       - Support generating ISO/OGG/CUE sets for DOSBox.
  */
 
 // Make clippy very strict. I'll opt out of the false positives as I hit them
@@ -60,7 +71,9 @@ use clap::{App, AppSettings, Arg, SubCommand};
 /// Custom clap-rs input validators
 mod validators;
 
+#[macro_use]
 mod platform;
+mod subcommands;
 
 // TODO: The retrode path should incorporate the current username
 // TODO: Allow overriding in a config file (Perhaps via .env with

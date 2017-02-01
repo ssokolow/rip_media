@@ -2,7 +2,7 @@
 
 use std::borrow::Cow;
 use std::error::Error;
-use std::ffi::OsStr;
+use std::ffi::{OsString, OsStr};
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
@@ -17,6 +17,7 @@ pub const DEFAULT_TIMEOUT: u64 = 10;
 pub const DEFAULT_CLOSE_TRAY: bool = true;
 
 /// Shorthand for calling subprocesses purely for side-effects
+#[macro_export]
 macro_rules! subprocess_call {
     ( $cmd:expr, $( $arg:expr ), * ) => {
         Command::new($cmd)
@@ -58,6 +59,13 @@ pub trait MediaProvider {
     fn wait_for_ready(&self, timeout: &Duration, close_tray: bool) -> Result<(), String>;
 }
 
+/// Interface for platform providers which support exposing raw device paths
+pub trait RawMediaProvider {
+    /// Return an `OsString` which can be used by APIs or subprocesses to
+    /// reference the device
+    fn device_path(&self) -> OsString;
+}
+
 /// High-level interface for notifying the user via various system APIs
 pub trait NotificationProvider {
     /// Play the given audio file, if supported
@@ -68,6 +76,11 @@ pub trait NotificationProvider {
 pub struct LinuxPlatformProvider<'a> {
     /// Device/file to operate on
     device: Cow<'a, OsStr>,
+}
+
+impl<'a> RawMediaProvider for LinuxPlatformProvider<'a> {
+    // TODO: Actually think about this API and refactor.
+    fn device_path(&self) -> OsString { self.device.clone().into_owned() }
 }
 
 impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
