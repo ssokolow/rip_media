@@ -74,6 +74,7 @@ use errors::*;
 
 /// libstd imports
 use std::borrow::Cow;
+use std::ffi::OsStr;
 
 /// clap-rs imports
 #[macro_use]
@@ -95,7 +96,13 @@ mod subcommands;
 /// Default path to read from if none is specified
 const DEFAULT_INPATH: &'static str = "/dev/sr0";
 // const RETRODE_INPATH: &'static str = "/media/ssokolow/RETRODE";
+// TODO: Use libblkid to look up RETRODE at runtime:
+// https://www.kernel.org/pub/linux/utils/util-linux/v2.21/libblkid-docs/libblkid-Tags-and-Spec-evaluation.html
+//
 // const VOLUME_SIZE: u64 = 4480 * 1024 * 1024;  // DVD+R, given ISO+UDF overhead
+
+// TODO: Audit all of my explicit lifetimes and give them descriptive names
+// https://scribbles.pascalhertleif.de/elegant-apis-in-rust.html
 
 /// Allow different defaults to be passed to unit tests
 struct AppConfig<'a> {
@@ -204,15 +211,31 @@ fn main() {
     let defaults = AppConfig::default();
     let matches = make_clap_parser(&defaults).get_matches();
 
-    match matches.subcommand_name() {
-        Some(e) => println!("TODO: Implement subcommand: {}", e),
-        None => unreachable!(),
-    }
+    let subcommand_func = match matches.subcommand_name() {
+        Some("audio") => subcommands::rip_audio,
+        Some("cd") => subcommands::rip_cd,
+        Some("dvd") => subcommands::rip_dvd,
+        Some("psx") => subcommands::rip_psx,
+        Some("ps2") => subcommands::rip_ps2,
+        Some("damaged") => subcommands::rip_damaged,
+        Some(e) => panic!("TODO: Implement subcommand: {}", e),
+        None => unreachable!("clap should be enforcing that this is provided by the user"),
+    };
 
     // TODO:
     // 1. Do common setup for disc set
     // 2. For each disc...
     //      ...call the ripping command appropriate to the subcommand
+
+    //with _containing_workdir(args.outdir or os.getcwdu()):
+    //    for _ in range(0, args.set_size):
+            // TODO: Actually put set_size things in the same folder
+            // TODO: Unify error-handling and replace expect() with ok_or() and ?
+            let inpath: &OsStr = matches.value_of_os("inpath")
+                .expect("clap should provide a default if nothing is specified");
+            let name = matches.value_of("name").map(|st| Cow::Borrowed(st));
+            let mut provider = platform::LinuxPlatformProvider::new(Cow::Borrowed(inpath));
+            subcommands::rip(&mut provider, subcommand_func, name);
 }
 
 // Tests go below the code where they'll be out of the way when not the target of attention

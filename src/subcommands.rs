@@ -1,23 +1,28 @@
 //! Subcommand definitions
 
+use std::borrow::Cow;
 use std::fs::remove_file;
 use std::io::ErrorKind as IOErrorKind;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
+use std::thread::sleep;
+use std::time::Duration;
 
 extern crate glob;
 use self::glob::{glob_with,MatchOptions};
 
 use errors::*;
-use platform::{NotificationProvider, RawMediaProvider};
+use platform::{MediaProvider, NotificationProvider, RawMediaProvider, DEFAULT_TIMEOUT};
 
 /// Sound to play on completion
 /// TODO: Rearchitect once I've finished the basic port
 const DONE_SOUND: &'static str = "/usr/share/sounds/KDE-Im-Nudge.ogg";
 
+/// Sound to play on failure
+const FAIL_SOUND: &'static str = "/usr/share/sounds/KDE-K3B-Finish-Error.ogg";
 
 /// Dump a disc to as raw a BIN/TOC/CUE set as possible using cdrdao.
-fn rip_bin<P: RawMediaProvider>(
+pub fn rip_bin<P: RawMediaProvider>(
         provider: &P,
         disc_name: &str,
         keep_tocfile: bool) -> Result<()> {
@@ -60,7 +65,7 @@ fn rip_bin<P: RawMediaProvider>(
 }
 
 /// Dump a disc to an ISO using ddrescue
-fn rip_iso<P: RawMediaProvider>(provider: &P, disc_name: &str) -> Result<()> {
+pub fn rip_iso<P: RawMediaProvider>(provider: &P, disc_name: &str) -> Result<()> {
     // TODO: Deduplicate this with rip_bin
     let volbase = PathBuf::from(disc_name.replace(" ", "_"));  // For consistency with rip_bin
     let isofile = volbase.with_extension("iso");
@@ -77,7 +82,7 @@ fn rip_iso<P: RawMediaProvider>(provider: &P, disc_name: &str) -> Result<()> {
 }
 
 /// Rip an audio CD using cdparanoia
-pub fn rip_audio<P: RawMediaProvider>(provider: &P, _: &str) -> Result<()> {
+pub fn rip_audio<P: RawMediaProvider>(provider: &mut P, _: &str) -> Result<()> {
     // TODO: Decide on how to specify policy for skip-control options
     // TODO: Use morituri instead, since it does everything we want already
     //       https://github.com/thomasvs/morituri
@@ -112,8 +117,47 @@ pub fn rip_audio<P: RawMediaProvider>(provider: &P, _: &str) -> Result<()> {
 
 // -- interactive --
 
+/** Ensure we have a volume name, even if it requires manual input
+ *
+ * Will use (in priority order):
+ *
+ *  * The `name` argument
+ *  * `provider.volume_label()`
+ *  * Prompted user input
+ *
+ *  TODO: Redesign this so it can defer until the end by using mkdtemp()
+ *        for maximum convenience and robustness in the face of a busy user
+ */
+pub fn ensure_vol_label<'a, P: MediaProvider>(
+        provider: &P,
+        name: Option<Cow<'a, str>>) -> Cow<'a, str> {
+    if let Some(x) = name {
+        return x;
+    }
+
+    // Fall back to prompting (and ensure we get a non-empty name)
+    // TODO: but do it with a timeout so the user can run the script and then take
+    //       their time loading the disc if they prefer that order of operations
+    let mut name = "".to_string();
+    while name.trim().is_empty() {
+        name = provider.volume_label().unwrap_or_default().trim().to_string();
+        // if name
+        //    break
+        // name = raw_input("Disc Name: ").strip()
+        unimplemented!();
+    }
+    Cow::from(name)
+}
+
 /// Robustly prompt the user for a CD key and record it in `cd_key.txt`
 pub fn get_cd_key<P: RawMediaProvider>(provider: &P, disc_name: &str) -> Result<()> {
+    // TODO: Implement this by adding a prompting API to the platform provider
+    unimplemented!();
+}
+
+/// Display a prompt and wait for the user to press Enter
+pub fn pause(prompt: &str) {
+    // TODO: Implement this by adding a prompting API to the platform provider
     unimplemented!();
 }
 
@@ -121,41 +165,76 @@ pub fn get_cd_key<P: RawMediaProvider>(provider: &P, disc_name: &str) -> Result<
 // TODO: Make these as asynchronous as possible
 
 /// Subcommand to rip a CD-ROM
-pub fn rip_cd<P: RawMediaProvider + NotificationProvider>(provider: P, disc_name: &str)
+pub fn rip_cd<P: RawMediaProvider + NotificationProvider>(provider: &mut P, disc_name: &str)
         -> Result<()> {
     // TODO: Make this take options so I can ask for BIN or ISO
-    rip_bin(&provider, disc_name, true)?;
+    rip_bin(provider, disc_name, true)?;
     let _ = provider.play_sound(DONE_SOUND);
-    get_cd_key(&provider, disc_name)
+    get_cd_key(provider, disc_name)
 }
 
 /// Subcommand to recover a damaged CD
-pub fn rip_damaged<P: RawMediaProvider + NotificationProvider>(provider: P, disc_name: &str)
+pub fn rip_damaged<P: RawMediaProvider + NotificationProvider>(provider: &mut P, disc_name: &str)
         -> Result<()> {
     // TODO: Look into integrating dvdisaster
-    rip_bin(&provider, disc_name, true)?;
-    rip_iso(&provider, disc_name)?;
-    rip_audio(&provider, disc_name)?;
+    rip_bin(provider, disc_name, true)?;
+    rip_iso(provider, disc_name)?;
+    rip_audio(provider, disc_name)?;
     let _ = provider.play_sound(DONE_SOUND);
-    get_cd_key(&provider, disc_name)
+    get_cd_key(provider, disc_name)
 }
 
 /// Subcommand to rip a DVD-ROM
-pub fn rip_dvd<P: RawMediaProvider + NotificationProvider>(provider: P, disc_name: &str)
+pub fn rip_dvd<P: RawMediaProvider + NotificationProvider>(provider: &mut P, disc_name: &str)
         -> Result<()> {
-    rip_iso(&provider, disc_name)?;
+    rip_iso(provider, disc_name)?;
     let _ = provider.play_sound(DONE_SOUND);
-    get_cd_key(&provider, disc_name)
+    get_cd_key(provider, disc_name)
 }
 
 /// Subcommand to rip a Playstation (PSX/PS1) disc
-pub fn rip_psx<P: RawMediaProvider + NotificationProvider>(provider: P, disc_name: &str)
+pub fn rip_psx<P: RawMediaProvider + NotificationProvider>(provider: &mut P, disc_name: &str)
         -> Result<()> {
-    rip_bin(&provider, disc_name, true)
+    rip_bin(provider, disc_name, true)
 }
 
 /// Subcommand to rip a Playstation 2 (PS2) disc
-pub fn rip_ps2<P: RawMediaProvider + NotificationProvider>(provider: P, disc_name: &str)
+pub fn rip_ps2<P: RawMediaProvider + NotificationProvider>(provider: &mut P, disc_name: &str)
         -> Result<()> {
-    rip_iso(&provider, disc_name)
+    rip_iso(provider, disc_name)
+}
+
+/// Top-level orchestration for doing a ripping run on a single disc
+/// TODO: Provide prompting via a swappable service provider similar to APT's.
+/// NOTE: We take `name` as a Cow purely for `ensure_vol_label`
+pub fn rip<P, F>(mut plat_provider: &mut P, mode_func: F, name: Option<Cow<str>>) -> Result<()>
+    where
+        P: MediaProvider + NotificationProvider,
+        F: Fn(&mut P, &str) -> Result<()> {
+    pause("Insert disc and press Enter...");
+    // TODO: Perhaps a mode where this presses Enter for you after 30 seconds
+    //       if the disc's serial number has changed?
+    plat_provider.load()?;
+    plat_provider.wait_for_ready(&Duration::new(DEFAULT_TIMEOUT, 0))?;
+    plat_provider.unmount()?;  // Ensure we can get exclusive access to the disc
+
+    let name = ensure_vol_label(plat_provider, name);
+    assert!(!name.trim().is_empty());  // Guard against empty names
+    // with _containing_workdir(disc_name):
+        mode_func(&mut plat_provider, &name).map_err(|e| {
+            let _ = plat_provider.play_sound(FAIL_SOUND);
+            e
+        })?;
+
+    // Notify completion and eject
+    // TODO: Redesign to deduplicate the audio in PC-related modes.
+    let _ = plat_provider.play_sound(DONE_SOUND);
+    sleep(Duration::new(2, 0)); // Give me time to reach for the door if it got closed
+    let _ = plat_provider.eject();  // TODO: Notify failure here
+
+    // TODO: Optionally compress the image as strongly as possible
+    // ['7z', 'a', '-t7z', '-m0=lzma', '-mx=9', '-mfb=64', '-md=32m', '-ms=on',
+    //  '%s.7z' % name, name] && shutil.rmtree(name)
+
+    Ok(())
 }
