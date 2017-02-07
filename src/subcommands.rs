@@ -140,7 +140,7 @@ pub fn ensure_vol_label<'a, P: MediaProvider>(
     //       their time loading the disc if they prefer that order of operations
     let mut name = "".to_string();
     while name.trim().is_empty() {
-        name = provider.volume_label().unwrap_or_default().trim().to_string();
+        name = provider.volume_label().unwrap_or_else(|_| String::from("")).trim().to_string();
         // if name
         //    break
         // name = raw_input("Disc Name: ").strip()
