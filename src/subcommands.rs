@@ -2,6 +2,7 @@
 
 use std::fs::remove_file;
 use std::io::ErrorKind as IOErrorKind;
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 extern crate glob;
@@ -22,29 +23,36 @@ fn rip_bin<P: RawMediaProvider>(
         disc_name: &str,
         keep_tocfile: bool) -> Result<()> {
 
-    let volname = disc_name.replace(" ", "_");
-    let tocfile = format!("{}.toc", volname);
-    let cuefile = format!("{}.cue", volname);
+    // TODO: Unit-test this
+    // TODO: Decide how to work in absolute paths
+    // toc2cue doesn't handle spaces in filenames well, so swap in underscores
+    let volbase = PathBuf::from(disc_name.replace(" ", "_"));
+    let tocfile = volbase.with_extension("toc");
+    let cuefile = volbase.with_extension("cue");
 
     // Rip it or die
-    // TODO: ...or die
+    // TODO: Verify the "or die"
     subprocess_call!("cdrdao", "read-cd", "--read-raw",
                      "--driver", "generic-mmc-raw",
                      "--device", provider.device_path(),
-                     "--datafile", format!("{}.bin", volname), &tocfile);
+                     "--datafile", volbase.with_extension("bin"), &tocfile)
+        .chain_err(|| format!("Error while dumping BIN/TOC pair"))?;
 
     // Generate a .CUE file
     // TODO: Find a way to detect if an ISO would be equivalent
     // TODO: Detect if there are audio tracks and, if so, byte-swap
     Command::new("toc2cue").args(&[&tocfile, &cuefile]).stdout(Stdio::null()).status()
-        .chain_err(|| format!("Could not generate {} file from {}", cuefile, tocfile))?;
+        .chain_err(|| format!("Could not generate {} file from {}",
+            cuefile.to_string_lossy(), tocfile.to_string_lossy()))?;
 
     // XXX: Properly quote the cue file contents.
     // (an alernative to subbing in underscores)
     // sed -i 's@^FILE \([^"].*[^"]\) BINARY@FILE "\1" BINARY@' .cue
 
-    if keep_tocfile != true {
-        remove_file(&tocfile).chain_err(|| format!("Could not remove {}", tocfile))?;
+    // TODO: Audit when I want to die and when I want to keep going
+    if !keep_tocfile {
+        remove_file(&tocfile).chain_err(|| format!("Could not remove {}",
+                                                   tocfile.to_string_lossy()))?;
     }
 
     // TODO: Better way to make audio tracks obvious
@@ -54,12 +62,15 @@ fn rip_bin<P: RawMediaProvider>(
 
 /// Dump a disc to an ISO using ddrescue
 fn rip_iso<P: RawMediaProvider>(provider: &P, disc_name: &str) -> Result<()> {
-    let volname = disc_name.replace(" ", "_");  // For consistency with rip_bin
-    subprocess_call!("ddrescue", "-b", "2048", provider.device_path(),
-                     format!("{}.iso", volname), format!("{}.log", volname))
+    // TODO: Deduplicate this with rip_bin
+    let volbase = PathBuf::from(disc_name.replace(" ", "_"));  // For consistency with rip_bin
+    let isofile = volbase.with_extension("iso");
+    let logfile = volbase.with_extension("log");
+
+    subprocess_call!("ddrescue", "-b", "2048", provider.device_path(), &isofile, &logfile)
         .chain_err(|| "Initial ddrescue run reported failure")?;
     subprocess_call!("ddrescue", "--direct", "-M", "-b", "2048", provider.device_path(),
-                     format!("{}.iso", volname), format!("{}.log", volname))
+                     &isofile, &logfile)
         .chain_err(|| "Second ddrescue pass reported failure")?;
     // TODO: Compare ddrescue to the reading modes of dvdiaster for recovering
     //       non-ECC-agumented discs.
