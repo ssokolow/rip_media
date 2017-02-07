@@ -7,6 +7,7 @@
  *       - http://graphviz.org/content/fsm  (for iterating on a design)
  *       - https://hoverbear.org/2016/10/12/rust-state-machine-pattern/
  *
+ * TODO: Audit necessity of mutability for all function arguments
  * TODO: https://andybarron.github.io/docs/preferences-rs/preferences/
  *
  * TODO: Decide how to handle copying from RETRODE_INPATH with maximum reliability
@@ -285,6 +286,8 @@ mod tests {
         assert!(inpath == "/",
                 "\"cd -i/\" should have produced \"/\" but actually produced \"{}\"", inpath)
     }
+
+    // TODO: More unit tests
 }
 
 // vim: set sw=4 sts=4 :

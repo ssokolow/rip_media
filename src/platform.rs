@@ -72,11 +72,13 @@ pub trait NotificationProvider {
 /// `MediaProvider` implementation which operates on (possibly GUI-less) Linux systems
 pub struct LinuxPlatformProvider<'a> {
     /// Device/file to operate on
+    /// TODO: Consider storing a Path internally instead.
     device: Cow<'a, OsStr>,
 }
 
 impl<'a> LinuxPlatformProvider<'a> {
     /// Create a `LinuxPlatformProvider` for a given device path
+    /// TODO: By convention, isn't this supposed to be from_* instead?
     pub fn new(device: Cow<OsStr>) -> LinuxPlatformProvider {
         // TODO: Validate this path
         LinuxPlatformProvider { device: device }

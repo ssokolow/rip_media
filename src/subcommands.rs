@@ -232,6 +232,8 @@ pub fn rip<P, F>(mut plat_provider: &mut P, mode_func: F, name: Option<Cow<str>>
     sleep(Duration::new(2, 0)); // Give me time to reach for the door if it got closed
     let _ = plat_provider.eject();  // TODO: Notify failure here
 
+    // TODO: Call ['par2create', '-n1', '%s.par2' % name, glob.glob('*')]
+
     // TODO: Optionally compress the image as strongly as possible
     // ['7z', 'a', '-t7z', '-m0=lzma', '-mx=9', '-mfb=64', '-md=32m', '-ms=on',
     //  '%s.7z' % name, name] && shutil.rmtree(name)

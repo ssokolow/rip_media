@@ -130,6 +130,8 @@ mod tests {
         assert!(path_readable("/etc/shadow".to_string()).is_err());
         assert!(path_readable("/nonexistant_test_path".to_string()).is_err());
     }
+
+    // TODO: More unit tests
 }
 
 // vim: set sw=4 sts=4 :
