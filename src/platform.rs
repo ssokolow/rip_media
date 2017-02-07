@@ -105,15 +105,22 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
     }
 
     fn volume_label(&self) -> Result<String> {
+        // TODO: Use UDisks2 via dbus
+        //
+        // XXX: Could use libblkid directly:
+        // https://www.kernel.org/pub/linux/utils/util-linux/v2.21/libblkid-docs/libblkid-Search-and-iterate.html#blkid-get-tag-value
+        // (Use the existing Command::new("blkid") code for functional testing)
+
         // Allow Linux a chance to read the name (eg. for post-ISO9660 stuff)
         if let Ok(label) = Command::new("blkid")
                         .args(&["-s", "LABEL", "-o", "value"]).arg(&self.device).output()
                         .map(|o| String::from_utf8_lossy(o.stdout.as_slice()).trim().to_owned()) {
                         // XXX: Handle some types of blkid failure?
-            return Ok(label)  // TODO: Is there a more idiomatic way to do this?
+            return Ok(label)  // TODO: Is there a more idiomatic way to do early return on Ok()?
         }
 
         // Fall back to reading the raw ISO9660 header
+        // TODO: Move this stuff into an IsoMediaProvider
         let mut dev = File::open(&self.device).chain_err(
             || format!("Could not open for reading: {}", self.device.to_string_lossy()))?;
 
@@ -151,3 +158,5 @@ impl<'a> NotificationProvider for LinuxPlatformProvider<'a> {
                 .chain_err(|| format!("Could not play {}", path.as_ref().to_string_lossy()))
     }
 }
+
+// TODO: Unit tests (eg. make a tiny tiny ISO file for testing)
