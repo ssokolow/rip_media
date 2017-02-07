@@ -66,7 +66,7 @@ pub trait RawMediaProvider {
 /// High-level interface for notifying the user via various system APIs
 pub trait NotificationProvider {
     /// Play the given audio file, if supported
-    fn play_sound<P: AsRef<Path> + ?Sized>(&self, path: &P) -> Result<()>;
+    fn play_sound<P: AsRef<Path> + ?Sized>(&mut self, path: &P) -> Result<()>;
 }
 
 /// `MediaProvider` implementation which operates on (possibly GUI-less) Linux systems
@@ -139,7 +139,7 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
 }
 
 impl<'a> NotificationProvider for LinuxPlatformProvider<'a> {
-    fn play_sound<P: AsRef<Path> + ?Sized>(&self, path: &P) -> Result<()> {
+    fn play_sound<P: AsRef<Path> + ?Sized>(&mut self, path: &P) -> Result<()> {
         subprocess_call!("play", "-q", path.as_ref())
                 .chain_err(|| format!("Could not play {}", path.as_ref().to_string_lossy()))
     }
