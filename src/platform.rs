@@ -75,6 +75,13 @@ pub struct LinuxPlatformProvider<'a> {
     device: Cow<'a, OsStr>,
 }
 
+impl<'a> LinuxPlatformProvider<'a> {
+    pub fn new(device: Cow<OsStr>) -> LinuxPlatformProvider {
+        // TODO: Validate this path
+        LinuxPlatformProvider { device: device }
+    }
+}
+
 impl<'a> RawMediaProvider for LinuxPlatformProvider<'a> {
     // TODO: Actually think about this API and refactor.
     fn device_path(&self) -> OsString { self.device.clone().into_owned() }
