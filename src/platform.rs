@@ -14,9 +14,6 @@ use std::time::{Duration, Instant};
 /// Default timeout duration (in seconds)
 pub const DEFAULT_TIMEOUT: u64 = 10;
 
-/// Default to be used with the `close_tray` argument to `MediaProvider::wait_for_ready`
-pub const DEFAULT_CLOSE_TRAY: bool = true;
-
 /// Shorthand for calling subprocesses purely for side-effects
 #[macro_export]
 macro_rules! subprocess_call {
@@ -46,6 +43,9 @@ pub trait MediaProvider {
     /// Eject the media if the hardware supports it
     fn eject(&mut self) -> Result<()>;
 
+    /// Load the media if the hardware supports it
+    fn load(&mut self) -> Result<()>;
+
     /// Unmount the media if mounted
     fn unmount(&mut self) -> Result<()>;
 
@@ -53,9 +53,7 @@ pub trait MediaProvider {
     fn volume_label(&self) -> Result<String>;
 
     /// Wait up to `timeout` seconds for the disc to be ready
-    ///
-    /// If `close_tray` is `true` and the device is capable, load the media.
-    fn wait_for_ready(&self, timeout: &Duration, close_tray: bool) -> Result<()>;
+    fn wait_for_ready(&self, timeout: &Duration) -> Result<()>;
 }
 
 /// Interface for platform providers which support exposing raw device paths
@@ -86,6 +84,12 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
     fn eject(&mut self) -> Result<()> {
         subprocess_call!("eject", &self.device)
             .chain_err(|| format!("Could not eject {}", &self.device.to_string_lossy()))
+    }
+
+    fn load(&mut self) -> Result<()> {
+        subprocess_call!("eject", "-t", &self.device).map(|_| ())
+            .chain_err(|| format!("Could not load media for {}",
+                                  &self.device.to_string_lossy()))
     }
 
     fn unmount(&mut self) -> Result<()> {
@@ -119,13 +123,7 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
                   .split('\0').next().unwrap_or("").trim().to_owned())
     }
 
-    fn wait_for_ready(&self, timeout: &Duration, close_tray: bool) -> Result<()> {
-        if close_tray {
-            // TODO: What *should* I do on failure here?
-            subprocess_call!("eject", "-t", &self.device)
-                .chain_err(|| format!("Could load media for {}", &self.device.to_string_lossy()));
-        }
-
+    fn wait_for_ready(&self, timeout: &Duration) -> Result<()> {
         let start_time = Instant::now();
         while start_time.elapsed() < *timeout {
             // Poll for a disc and return early on success
