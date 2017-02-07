@@ -47,13 +47,14 @@
 // error_chain recursion adjustment
 #![recursion_limit = "1024"]
 
-// Make clippy very strict. I'll opt out of the false positives as I hit them
-#![cfg_attr(feature="cargo-clippy", warn(clippy_pedantic))]
-#![cfg_attr(feature="cargo-clippy", warn(indexing_slicing))]
-#![cfg_attr(feature="cargo-clippy", warn(integer_arithmetic))]
-
 // Make rustc's built-in lints more strict (I'll opt back out selectively)
 #![warn(warnings)]
+
+// Set clippy into a whitelist-based configuration so I'll see new lints as they come in
+#![cfg_attr(feature="cargo-clippy", warn(clippy_pedantic, clippy_restrictions))]
+
+// Opt out of the lints I've seen and don't want
+#![cfg_attr(feature="cargo-clippy", allow(assign_ops, float_arithmetic))]
 
 // Use musl's malloc when building on nightly for maximum size reduction
 #![cfg_attr(feature="nightly", feature(alloc_system))]
