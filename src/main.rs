@@ -44,7 +44,7 @@
  *       - Support generating ISO/OGG/CUE sets for DOSBox.
  */
 
-// error_chain recursion adjustment
+// `error_chain` recursion adjustment
 #![recursion_limit = "1024"]
 
 // Make rustc's built-in lints more strict (I'll opt back out selectively)
@@ -61,10 +61,11 @@
 #[cfg(feature="nightly")]
 extern crate alloc_system;
 
-/// error_chain imports
+/// `error_chain` imports
 #[macro_use]
 extern crate error_chain;
 
+/// `error_chain` custom structs
 mod errors {
     error_chain!{}
 }

@@ -15,7 +15,6 @@ use platform::{NotificationProvider, RawMediaProvider};
 /// TODO: Rearchitect once I've finished the basic port
 const DONE_SOUND: &'static str = "/usr/share/sounds/KDE-Im-Nudge.ogg";
 
-// TODO: Replace all of these format!-based filename builders with use of PathBuf
 
 /// Dump a disc to as raw a BIN/TOC/CUE set as possible using cdrdao.
 fn rip_bin<P: RawMediaProvider>(
@@ -36,7 +35,7 @@ fn rip_bin<P: RawMediaProvider>(
                      "--driver", "generic-mmc-raw",
                      "--device", provider.device_path(),
                      "--datafile", volbase.with_extension("bin"), &tocfile)
-        .chain_err(|| format!("Error while dumping BIN/TOC pair"))?;
+        .chain_err(|| "Error while dumping BIN/TOC pair")?;
 
     // Generate a .CUE file
     // TODO: Find a way to detect if an ISO would be equivalent
@@ -89,7 +88,7 @@ pub fn rip_audio<P: RawMediaProvider>(provider: &P, _: &str) -> Result<()> {
 
     // TODO: HumanSort before operating on them
     for wav_result in glob_with("*.wav", &options).expect("Hard-coded pattern is bad") {
-        match wav_result.chain_err(|| format!("Could not glob path")) {
+        match wav_result.chain_err(|| "Could not glob path") {
             Err(e) => return Err(e),
             Ok(path) => {
                 // TODO: Tidy this up when I'm not so tired
@@ -101,7 +100,8 @@ pub fn rip_audio<P: RawMediaProvider>(provider: &P, _: &str) -> Result<()> {
                     .chain_err(|| format!("Could not encode dumped WAV file to FLAC: {}",
                                           path.to_string_lossy()))?;
                 remove_file(&path).or_else(|e|
-                    if e.kind() != IOErrorKind::NotFound { Ok(()) } else { Err(e) }
+                    // FIXME: What was the rationale for the following?
+                    if e.kind() == IOErrorKind::NotFound { Err(e) } else { Ok(()) }
                 ).chain_err(|| format!("Could not remove {}", path.to_string_lossy()))?
             }
         }
@@ -148,7 +148,7 @@ pub fn rip_dvd<P: RawMediaProvider + NotificationProvider>(provider: P, disc_nam
     get_cd_key(&provider, disc_name)
 }
 
-/// Subcommand to rip a PlayStation (PSX/PS1) disc
+/// Subcommand to rip a Playstation (PSX/PS1) disc
 pub fn rip_psx<P: RawMediaProvider + NotificationProvider>(provider: P, disc_name: &str)
         -> Result<()> {
     rip_bin(&provider, disc_name, true)

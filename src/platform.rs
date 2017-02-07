@@ -76,6 +76,7 @@ pub struct LinuxPlatformProvider<'a> {
 }
 
 impl<'a> LinuxPlatformProvider<'a> {
+    /// Create a `LinuxPlatformProvider` for a given device path
     pub fn new(device: Cow<OsStr>) -> LinuxPlatformProvider {
         // TODO: Validate this path
         LinuxPlatformProvider { device: device }
