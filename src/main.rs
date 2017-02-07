@@ -286,4 +286,5 @@ mod tests {
                 "\"cd -i/\" should have produced \"/\" but actually produced \"{}\"", inpath)
     }
 }
+
 // vim: set sw=4 sts=4 :

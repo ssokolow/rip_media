@@ -161,3 +161,4 @@ impl<'a> NotificationProvider for LinuxPlatformProvider<'a> {
 }
 
 // TODO: Unit tests (eg. make a tiny tiny ISO file for testing)
+// vim: set sw=4 sts=4 :

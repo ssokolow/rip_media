@@ -238,3 +238,5 @@ pub fn rip<P, F>(mut plat_provider: &mut P, mode_func: F, name: Option<Cow<str>>
 
     Ok(())
 }
+
+// vim: set sw=4 sts=4 :

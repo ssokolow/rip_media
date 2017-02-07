@@ -131,3 +131,5 @@ mod tests {
         assert!(path_readable("/nonexistant_test_path".to_string()).is_err());
     }
 }
+
+// vim: set sw=4 sts=4 :
