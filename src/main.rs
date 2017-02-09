@@ -52,6 +52,8 @@
 // Make rustc's built-in lints more strict (I'll opt back out selectively)
 #![warn(warnings)]
 
+// TODO: Once clippy is included in stable, don't feature-gate my warnings
+// (Or at least find a way to enable build-time and `cargo clippy`-time with a single feature)
 // Set clippy into a whitelist-based configuration so I'll see new lints as they come in
 #![cfg_attr(feature="cargo-clippy", warn(clippy_pedantic, clippy_restrictions))]
 
