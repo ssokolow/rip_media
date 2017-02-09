@@ -5,7 +5,7 @@ authors = ["Stephan Sokolow <http://www.ssokolow.com/ContactMe>"]
 
 [dependencies]
 clap = "2"
-error-chain = "0.8.1"
+error-chain = "0.9"
 libc = "0.2.17"
 glob = "0.2.11"
 rustyline = "1.0.0"
