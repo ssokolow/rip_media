@@ -8,6 +8,7 @@
  *       - https://hoverbear.org/2016/10/12/rust-state-machine-pattern/
  *
  * TODO: Audit necessity of mutability for all function arguments
+ * TODO: Decide how to handle POSIX signals
  * TODO: https://andybarron.github.io/docs/preferences-rs/preferences/
  *
  * TODO: Decide how to handle copying from RETRODE_INPATH with maximum reliability
@@ -222,6 +223,11 @@ fn main() {
         Some(e) => panic!("TODO: Implement subcommand: {}", e),
         None => unreachable!("clap should be enforcing that this is provided by the user"),
     };
+
+    // IDEA: Could I adapt the "parameterized impl for verified state machine"
+    //       trick to compile-time verify that code which may be called in
+    //       non-interactive-mode doesn't depend on interactive calls like
+    //       prompt()?
 
     // TODO:
     // 1. Do common setup for disc set

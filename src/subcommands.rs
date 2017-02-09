@@ -128,7 +128,7 @@ pub fn rip_audio<P: RawMediaProvider>(provider: &mut P, _: &str) -> Result<()> {
  *  TODO: Redesign this so it can defer until the end by using mkdtemp()
  *        for maximum convenience and robustness in the face of a busy user
  */
-pub fn ensure_vol_label<'a, P: MediaProvider>(
+pub fn ensure_vol_label<'a, P: MediaProvider + NotificationProvider>(
         provider: &P,
         name: Option<Cow<'a, str>>) -> Cow<'a, str> {
     if let Some(x) = name {
@@ -140,25 +140,43 @@ pub fn ensure_vol_label<'a, P: MediaProvider>(
     //       their time loading the disc if they prefer that order of operations
     let mut name = "".to_string();
     while name.trim().is_empty() {
+        // Do this inside the loop so I can press Enter to retry reading
+        // TODO: Think of better UX for this
         name = provider.volume_label().unwrap_or_else(|_| String::from("")).trim().to_string();
-        // if name
-        //    break
-        // name = raw_input("Disc Name: ").strip()
-        unimplemented!();
+
+        if name.is_empty() {
+            // FIXME: Do I make this fallible or swallow the error?
+            // name = provider.read_line("Disc Name: ")?.trim().to_string();
+            unimplemented!()
+        }
     }
     Cow::from(name)
 }
 
 /// Robustly prompt the user for a CD key and record it in `cd_key.txt`
-pub fn get_cd_key<P: RawMediaProvider>(provider: &P, disc_name: &str) -> Result<()> {
-    // TODO: Implement this by adding a prompting API to the platform provider
-    unimplemented!();
-}
+pub fn get_cd_key<P: NotificationProvider>(provider: &P, disc_name: &str) -> Result<()> {
+    loop {
+        let key = provider.read_line(&format!("please enter cd-key for {} (enter for none): ",
+                                             disc_name))?;
+        let trimmed = key.trim();
 
-/// Display a prompt and wait for the user to press Enter
-pub fn pause(prompt: &str) {
-    // TODO: Implement this by adding a prompting API to the platform provider
-    unimplemented!();
+        // TODO: Have a non-rustyline one for simple y/n or Enter stuff.
+        let confirm = if trimmed.is_empty() {
+            provider.read_line("no cd key. is this correct? (y/n): ")?
+        } else {
+            provider.read_line(&format!("please confirm \"{}\" (y/n): ", trimmed))?
+        };
+
+        if confirm.to_lowercase() == "y" {
+            if !trimmed.is_empty() {
+                unimplemented!();
+            //    with open('cd_key.txt', 'w') as fobj:
+            //        fobj.write('%s\n' % key)
+            }
+            break
+        }
+    }
+    Ok(())
 }
 
 // -- subcommands --
@@ -211,7 +229,10 @@ pub fn rip<P, F>(mut plat_provider: &mut P, mode_func: F, name: Option<Cow<str>>
     where
         P: MediaProvider + NotificationProvider,
         F: Fn(&mut P, &str) -> Result<()> {
-    pause("Insert disc and press Enter...");
+
+    // TODO: Have a non-rustyline one for simple y/n or Enter stuff.
+    plat_provider.read_line("Insert disc and press Enter...");
+
     // TODO: Perhaps a mode where this presses Enter for you after 30 seconds
     //       if the disc's serial number has changed?
     plat_provider.load()?;

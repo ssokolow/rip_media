@@ -1,5 +1,7 @@
 //! Abstraction around the underlying OS functionality
 
+extern crate rustyline;
+
 use errors::*;
 
 use std::borrow::Cow;
@@ -10,6 +12,8 @@ use std::path::Path;
 use std::process::Command;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
+
+use self::rustyline::Editor;
 
 /// Default timeout duration (in seconds)
 pub const DEFAULT_TIMEOUT: u64 = 10;
@@ -64,9 +68,13 @@ pub trait RawMediaProvider {
 }
 
 /// High-level interface for notifying the user via various system APIs
+/// TODO: Refactor or rename this since prompt() isn't a notification.
 pub trait NotificationProvider {
     /// Play the given audio file, if supported
     fn play_sound<P: AsRef<Path> + ?Sized>(&mut self, path: &P) -> Result<()>;
+
+    /// Prompt the user for a line of input
+    fn read_line(&self, prompt: &str) -> Result<String>;
 }
 
 /// `MediaProvider` implementation which operates on (possibly GUI-less) Linux systems
@@ -162,6 +170,12 @@ impl<'a> NotificationProvider for LinuxPlatformProvider<'a> {
     fn play_sound<P: AsRef<Path> + ?Sized>(&mut self, path: &P) -> Result<()> {
         subprocess_call!("play", "-q", path.as_ref())
                 .chain_err(|| format!("Could not play {}", path.as_ref().to_string_lossy()))
+    }
+
+    fn read_line(&self, prompt: &str) -> Result<String> {
+        let mut rl = Editor::<()>::new();
+        rl.readline(prompt).chain_err(
+            || format!("Failed to request information from user with: {}", prompt))
     }
 }
 
