@@ -83,11 +83,12 @@ pub fn dir_writable(value: &OsStr) -> Result<(), OsString> {
 /// TODO: Is there a way to ask the filesystem itself whether a name is OK?
 pub fn filename_valid(value: &OsStr) -> Result<(), OsString> {
     // TODO: Switch to using to_bytes() once it's stabilized
-    if value.to_string_lossy().chars().all(|c| !is_bad_for_fname(&c)) {
-        return Ok(());
+    if value.to_string_lossy().chars().any(|c| is_bad_for_fname(&c)) {
+        #[allow(use_debug)]
+        Err(format!("Name contains invalid characters: {:?}", value).into())
+    } else {
+        Ok(())
     }
-    #[allow(use_debug)]
-    Err(format!("Name contains invalid characters: {:?}", value).into())
 }
 
 /// Return true if the given character is in `INVALID_FILENAME_CHARS`
