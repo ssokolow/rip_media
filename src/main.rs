@@ -153,14 +153,14 @@ fn make_clap_parser<'a, 'b>(defaults: &'a AppConfig<'b>) -> App<'a, 'a> where 'a
         .args(&[
               arg_from_usage("[inpath] -i --inpath=<PATH>")
                 .default_value(&defaults.inpath)
-                .validator(validators::path_readable)
+                .validator_os(validators::path_readable)
                 .help("Path to source medium (device, image file, etc.)"),
             arg_from_usage("[outdir] -o --outdir=<PATH>")
                 .default_value(".")  // XXX: Look for an os.curdir equivalent
-                .validator(validators::dir_writable)
+                .validator_os(validators::dir_writable)
                 .help("Path to parent directory for output file(s)"),
             arg_from_usage("[name] --name=[NAME]")
-                .validator(validators::filename_valid)
+                .validator_os(validators::filename_valid)
                 .help("Specify the output file/folder name \
                        [default: <the volume label>]"),
                 // TODO: Decide how to combine this default with --set-size

@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io::ErrorKind;
 use std::path::Path;
@@ -55,13 +56,14 @@ mod access {
 }
 
 /// Test that the given path **should** be writable
-pub fn dir_writable(value: String) -> Result<(), String> {
+pub fn dir_writable(value: &OsStr) -> Result<(), OsString> {
     let path = Path::new(&value);
 
     // Test that the path is a directory
     // (Check before, not after, as an extra safety guard on the unsafe block)
     if !path.is_dir() {
-        return Err(format!("Not a directory: {}", value));
+        #[allow(use_debug)]
+        return Err(format!("Not a directory: {:?}", value).into());
     }
 
     // TODO: Think about how to code this more elegantly (try! perhaps?)
@@ -71,18 +73,21 @@ pub fn dir_writable(value: String) -> Result<(), String> {
         }
     }
 
-    Err(format!("Would be unable to write to destination directory: {}", value))
+    #[allow(use_debug)]
+    Err(format!("Would be unable to write to destination directory: {:?}", value).into())
 }
 
 /// Test that the given string doesn't contain any `INVALID_FILENAME_CHARS`
 /// Adapted from http://stackoverflow.com/a/30791678
 ///
 /// TODO: Is there a way to ask the filesystem itself whether a name is OK?
-pub fn filename_valid(value: String) -> Result<(), String> {
-    if value.chars().all(|c| !is_bad_for_fname(&c)) {
+pub fn filename_valid(value: &OsStr) -> Result<(), OsString> {
+    // TODO: Switch to using to_bytes() once it's stabilized
+    if value.to_string_lossy().chars().all(|c| !is_bad_for_fname(&c)) {
         return Ok(());
     }
-    Err(format!("Name contains invalid characters: {}", value))
+    #[allow(use_debug)]
+    Err(format!("Name contains invalid characters: {:?}", value).into())
 }
 
 /// Return true if the given character is in `INVALID_FILENAME_CHARS`
@@ -91,16 +96,16 @@ fn is_bad_for_fname(c: &char) -> bool {
 }
 
 /// Test that the given path can be opened for reading and adjust failure messages
-pub fn path_readable(value: String) -> Result<(), String> {
+pub fn path_readable(value: &OsStr) -> Result<(), OsString> {
     File::open(&value).map(|_| ()).map_err(|e|
         // TODO: Custom error type to avoid risking stringly-typed matching
         //       https://brson.github.io/2016/11/30/starting-with-error-chain
-        format!("{}: {}", &value, match e.kind() {
+        format!("{:?}: {}", value, match e.kind() {
             ErrorKind::NotFound => "path does not exist",
             // TODO: Return Ok(()) for ErrorKind::Other (we can wait/retry later)
             ErrorKind::Other => "unknown OS error (medium not ready?)",
             _ => e.description()
-        })
+        }).into()
     )
 }
 
