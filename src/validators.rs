@@ -126,15 +126,16 @@ pub fn set_size(value: String) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
+    use std::ffi::OsStr;
     use super::path_readable;
 
     #[test]
     /// Can override DEFAULT_INPATH when specifying -i before the subcommand
     fn path_readable_basic_functionality() {
-        assert!(path_readable("/".to_string()).is_ok());
-        assert!(path_readable("/etc/passwd".to_string()).is_ok());
-        assert!(path_readable("/etc/shadow".to_string()).is_err());
-        assert!(path_readable("/nonexistant_test_path".to_string()).is_err());
+        assert!(path_readable(OsStr::new("/")).is_ok());
+        assert!(path_readable(OsStr::new("/etc/passwd")).is_ok());
+        assert!(path_readable(OsStr::new("/etc/shadow")).is_err());
+        assert!(path_readable(OsStr::new("/nonexistant_test_path")).is_err());
     }
 
     // TODO: More unit tests
