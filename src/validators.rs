@@ -111,7 +111,7 @@ pub fn path_readable(value: &OsStr) -> Result<(), OsString> {
 }
 
 /// TODO: Find a way to make *clap* mention which argument failed validation
-///       so my validator can be generic
+///       so my validator can be generic (A closure, maybe?)
 pub fn set_size(value: String) -> Result<(), String> {
     // I can't imagine needing more than u8... no harm in being flexible here
     if let Ok(num) = value.parse::<u32>() {
@@ -127,18 +127,70 @@ pub fn set_size(value: String) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use std::ffi::OsStr;
-    use super::path_readable;
+    use std::os::unix::ffi::OsStrExt;  // TODO: Find a better way to produce invalid UTF-8
+    use super::{dir_writable, path_readable, set_size};
+
+    // TODO: Tests for wrapped_access which exercise the Invalid CString branch
 
     #[test]
-    /// Can override DEFAULT_INPATH when specifying -i before the subcommand
-    fn path_readable_basic_functionality() {
-        assert!(path_readable(OsStr::new("/")).is_ok());
-        assert!(path_readable(OsStr::new("/etc/passwd")).is_ok());
-        assert!(path_readable(OsStr::new("/etc/shadow")).is_err());
-        assert!(path_readable(OsStr::new("/nonexistant_test_path")).is_err());
+    fn dir_writable_basic_functionality() {
+        assert!(dir_writable(OsStr::new("/tmp")).is_ok());                     // OK Folder
+        // TODO: Writable file == Err
+        assert!(dir_writable(OsStr::new("/etc/shadow")).is_err());             // Denied File
+        assert!(dir_writable(OsStr::new("/etc/ssl/private")).is_err());        // Denied Folder
+        assert!(dir_writable(OsStr::new("/nonexistant_test_path")).is_err());  // Missing Path
+        assert!(dir_writable(OsStr::new("/tmp\0with\0null")).is_err());        // Invalid CString
+        assert!(dir_writable(OsStr::from_bytes(b"/not\xffutf8")).is_err());    // Invalid UTF-8
+        assert!(dir_writable(OsStr::new("/")).is_err());                       // Root
+        // TODO: is_dir but fails to canonicalize()
+        // TODO: Not-already-canonicalized paths
+        // TODO: Non-UTF8 path that actually does exist and is writable
     }
 
-    // TODO: More unit tests
+    // TODO: Tests for filename_valid
+
+    #[test]
+    fn path_readable_basic_functionality() {
+        assert!(path_readable(OsStr::new("/")).is_ok());                        // OK Folder
+        assert!(path_readable(OsStr::new("/etc/passwd")).is_ok());              // OK File
+        assert!(path_readable(OsStr::new("/etc/shadow")).is_err());             // Denied File
+        assert!(path_readable(OsStr::new("/etc/ssl/private")).is_err());        // Denied Folder
+        assert!(path_readable(OsStr::new("/nonexistant_test_path")).is_err());  // Missing Path
+        assert!(path_readable(OsStr::new("/null\0containing")).is_err());       // Invalid CString
+        assert!(path_readable(OsStr::from_bytes(b"/not\xffutf8")).is_err());    // Invalid UTF-8
+        // TODO: Not-already-canonicalized paths
+        // TODO: Non-UTF8 path that actually IS valid
+        // TODO: ErrorKind::Other
+    }
+
+    #[test]
+    fn set_size_requires_positive_base_10_numbers() {
+        assert!(set_size("".into()).is_err());
+        assert!(set_size("one".into()).is_err());
+        assert!(set_size("a".into()).is_err());  // not base 11 or above
+        assert!(set_size("0".into()).is_err());
+        assert!(set_size("-1".into()).is_err());
+    }
+
+    #[test]
+    fn set_size_requires_integers() {
+        assert!(set_size("-1.5".into()).is_err());
+        assert!(set_size("-0.5".into()).is_err());
+        assert!(set_size("0.5".into()).is_err());
+        assert!(set_size("1.5".into()).is_err());
+    }
+
+    #[test]
+    fn set_size_handles_out_of_range_sanely() {
+        assert!(set_size("5000000000".into()).is_err());
+    }
+
+    #[test]
+    fn set_size_basic_functionality() {
+        assert!(set_size("1".into()).is_ok());
+        assert!(set_size("9".into()).is_ok());     // not base 9 or below
+        assert!(set_size("5000".into()).is_ok()); // accept reasonably large numbers
+    }
 }
 
 // vim: set sw=4 sts=4 :
