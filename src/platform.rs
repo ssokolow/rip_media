@@ -44,6 +44,9 @@ macro_rules! read_exact_at {
 }
 
 /// Port of Python's naive `abspath` to be used as a prelude to Path::display()
+///
+/// **WARNING:** This won't handle drive-relative paths on Windows properly. (ie. c:win.com)
+///
 /// See this thread for context:
 ///   https://www.reddit.com/r/rust/comments/5tmvti/how_can_i_get_the_full_path_of_a_file_from_a/
 fn abspath<P: AsRef<Path> + ?Sized>(relpath: &P) -> IOResult<PathBuf> {
@@ -198,6 +201,17 @@ mod tests {
     use std::os::unix::ffi::OsStrExt; // TODO: Find a better way to produce invalid UTF-8
     use std::path::Path;
     use super::{abspath, LinuxPlatformProvider, MediaProvider, RawMediaProvider};
+
+    // TODO: Test abspath with relative paths
+
+    #[test]
+    fn abspath_leaves_absolute_paths_unchanged() {
+        for path_str in &["/", "/etc", "/nonexistant"] {
+            let path = Path::new(path_str);
+            assert_eq!(abspath(path).expect("abspath must never fail with null-free input"), path)
+        }
+    }
+
     // -- Tests for LinuxPlatformProvider.device_path()
 
     #[test]
