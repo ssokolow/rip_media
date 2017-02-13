@@ -149,7 +149,7 @@ pub fn set_size(value: String) -> Result<(), String> {
 mod tests {
     use std::ffi::OsStr;
     use std::os::unix::ffi::OsStrExt;  // TODO: Find a better way to produce invalid UTF-8
-    use super::{dir_writable, path_readable, set_size};
+    use super::{dir_writable, filename_valid, path_readable, set_size};
 
     #[test]
     fn dir_writable_basic_functionality() {
@@ -166,7 +166,35 @@ mod tests {
         // TODO: Non-UTF8 path that actually does exist and is writable
     }
 
-    // TODO: Tests for filename_valid
+    #[test]
+    fn filename_valid_accepts_valid_for_posix() {
+        assert!(filename_valid(OsStr::new("test")).is_ok());     // Basic, uncontroversial OK
+        assert!(filename_valid(OsStr::new("te st")).is_ok());    // Filenames may contain spaces
+        assert!(filename_valid(OsStr::new("te\nst")).is_ok());   // Filenames may contain \n
+        assert!(filename_valid(OsStr::new(".test")).is_ok());    // Filenames may start with .
+        assert!(filename_valid(OsStr::new("test.")).is_ok());    // Filenames may end with .
+        assert!(filename_valid(OsStr::from_bytes(b"\xff")).is_ok()); // POSIX allows invalid UTF-8
+    }
+
+    #[test]
+    fn filename_valid_refuses_invalid_for_fat32() {
+        assert!(filename_valid(OsStr::new("te\\st")).is_err());   // FAT32 uses \ as path separator
+        assert!(filename_valid(OsStr::new("t:est")).is_err());    // FAT32 uses : for drive letters
+        assert!(filename_valid(OsStr::new("\"test\"")).is_err()); // Can't escape " in COMMAND.COM
+        assert!(filename_valid(OsStr::new("<test")).is_err());    // Can't escape < in COMMAND.COM
+        assert!(filename_valid(OsStr::new("test>")).is_err());    // Can't escape > in COMMAND.COM
+        assert!(filename_valid(OsStr::new("test|")).is_err());    // Can't escape | in COMMAND.COM
+        assert!(filename_valid(OsStr::new("test*")).is_err());    // Can't escape * in COMMAND.COM
+        assert!(filename_valid(OsStr::new("test?")).is_err());    // Can't escape ? in COMMAND.COM
+        assert!(filename_valid(OsStr::new("?est")).is_err());     // ? at start signifies deletion
+    }
+
+    #[test]
+    fn filename_valid_refuses_invalid_for_posix() {
+        assert!(filename_valid(OsStr::new("")).is_err());        // Filenames may not be empty
+        assert!(filename_valid(OsStr::new("te/st")).is_err());   // POSIX uses / as path separator
+        assert!(filename_valid(OsStr::new("te\0st")).is_err());  // \0 is POSIX's string terminator
+    }
 
     #[test]
     fn path_readable_basic_functionality() {
