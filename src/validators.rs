@@ -107,6 +107,8 @@ pub fn filename_valid(value: &OsStr) -> Result<(), OsString> {
     if value.to_string_lossy().chars().any(|c| is_bad_for_fname(&c)) {
         #[allow(use_debug)]
         Err(format!("Name contains invalid characters: {:?}", value).into())
+    } else if value.is_empty() {
+        Err("Name is empty".into())
     } else {
         Ok(())
     }
