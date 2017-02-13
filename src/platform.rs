@@ -200,9 +200,18 @@ mod tests {
     use std::ffi::OsStr;
     use std::os::unix::ffi::OsStrExt; // TODO: Find a better way to produce invalid UTF-8
     use std::path::Path;
+    use std::time::{Duration, Instant};
     use super::{abspath, LinuxPlatformProvider, MediaProvider, RawMediaProvider};
 
     // TODO: Test abspath with relative paths
+
+    /// Helper to deduplicate getting a platform provider pointed at the test fixture
+    fn get_iso_provider<'a>() -> LinuxPlatformProvider<'a> {
+        let path = Path::new("fixture.iso");
+        assert!(path.exists(), "Test fixture not found: {}",
+                abspath(path).expect("Tests should have permission to read $PWD").display());
+        return LinuxPlatformProvider::new(Cow::Borrowed(path.as_os_str()));
+    }
 
     #[test]
     fn abspath_leaves_absolute_paths_unchanged() {
@@ -240,11 +249,7 @@ mod tests {
 
     #[test]
     fn volume_label_basic_function() {
-        let path = Path::new("fixture.iso");
-        assert!(path.exists(), "Test fixture not found: {}",
-                abspath(path).expect("Tests should have permission to read $PWD").display());
-        let p_good = LinuxPlatformProvider::new(Cow::Borrowed(path.as_os_str()));
-        assert_eq!(p_good.volume_label().expect("fixture.iso has label"), "CDROM");
+        assert_eq!(get_iso_provider().volume_label().expect("fixture.iso has label"), "CDROM");
     }
 
     #[test]
@@ -255,5 +260,33 @@ mod tests {
     fn volume_label_nonexistant() { test_label_failure("/nonexist_path"); }
 
     // TODO: More unit tests
+
+    #[test]
+    /// Test that it actually calls `sleep`
+    fn wait_for_ready_actually_waits() {
+        let p_bad = LinuxPlatformProvider::new(Cow::Borrowed(OsStr::new("/etc/shadow")));
+        let timeout = Duration::new(2, 0);  // Allow at least one sleep() call
+
+        let start = Instant::now();
+        assert!(p_bad.wait_for_ready(&timeout).is_err());
+        assert!(start.elapsed() > timeout);
+    }
+
+    #[test]
+    /// Guard against naively using `while start_time.elapsed() < *timeout`
+    fn wait_for_ready_always_tries_at_least_once() {
+        let p = get_iso_provider();
+        assert!(p.wait_for_ready(&Duration::new(0, 0)).is_ok())
+    }
+
+    #[test]
+    /// Test basic function
+    fn wait_for_ready_returns_success_with_good_input() {
+        let p = get_iso_provider();
+        assert!(p.wait_for_ready(&Duration::new(2, 0)).is_ok())
+    }
+
+    // CAUTION: Missing a test to guard against some kind of stale cache causing the timeout
+    //          duration to have no effect on the result.
 }
 // vim: set sw=4 sts=4 :
