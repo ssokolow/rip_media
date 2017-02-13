@@ -137,7 +137,9 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
                         .args(&["-s", "LABEL", "-o", "value"]).arg(&self.device).output()
                         .map(|o| String::from_utf8_lossy(o.stdout.as_slice()).trim().to_owned()) {
                         // XXX: Handle some types of blkid failure?
-            return Ok(label)  // TODO: Is there a more idiomatic way to do early return on Ok()?
+            if !label.is_empty() {
+                return Ok(label)  // TODO: Is there a more idiomatic early return for Ok()?
+            }
         }
 
         // Fall back to reading the raw ISO9660 header
@@ -150,7 +152,7 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
         #[cfg_attr(feature="cargo-clippy", allow(use_debug))]
         let cd_magic = read_exact_at!(dev, 2, SeekFrom::Start(32769));
         if &cd_magic != b"CD" {
-            return Ok("".to_string());
+            bail!("Unrecognized file format");
         }
 
         // http://www.commandlinefu.com/commands/view/12178
