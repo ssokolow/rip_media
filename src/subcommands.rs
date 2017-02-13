@@ -9,7 +9,7 @@ use std::thread::sleep;
 use std::time::Duration;
 
 extern crate glob;
-use self::glob::{glob_with,MatchOptions};
+use self::glob::{glob_with, MatchOptions};
 
 use errors::*;
 use platform::{MediaProvider, NotificationProvider, RawMediaProvider, DEFAULT_TIMEOUT};
@@ -22,10 +22,10 @@ const DONE_SOUND: &'static str = "/usr/share/sounds/KDE-Im-Nudge.ogg";
 const FAIL_SOUND: &'static str = "/usr/share/sounds/KDE-K3B-Finish-Error.ogg";
 
 /// Dump a disc to as raw a BIN/TOC/CUE set as possible using cdrdao.
-pub fn rip_bin<P: RawMediaProvider>(
-        provider: &P,
-        disc_name: &str,
-        keep_tocfile: bool) -> Result<()> {
+pub fn rip_bin<P: RawMediaProvider>(provider: &P,
+                                    disc_name: &str,
+                                    keep_tocfile: bool)
+                                    -> Result<()> {
 
     // TODO: Unit-test this
     // TODO: Decide how to work in absolute paths
@@ -67,7 +67,7 @@ pub fn rip_bin<P: RawMediaProvider>(
 /// Dump a disc to an ISO using ddrescue
 pub fn rip_iso<P: RawMediaProvider>(provider: &P, disc_name: &str) -> Result<()> {
     // TODO: Deduplicate this with rip_bin
-    let volbase = PathBuf::from(disc_name.replace(" ", "_"));  // For consistency with rip_bin
+    let volbase = PathBuf::from(disc_name.replace(" ", "_")); // For consistency with rip_bin
     let isofile = volbase.with_extension("iso");
     let logfile = volbase.with_extension("log");
 
@@ -128,9 +128,9 @@ pub fn rip_audio<P: RawMediaProvider>(provider: &mut P, _: &str) -> Result<()> {
  *  TODO: Redesign this so it can defer until the end by using mkdtemp()
  *        for maximum convenience and robustness in the face of a busy user
  */
-pub fn ensure_vol_label<'a, P: MediaProvider + NotificationProvider>(
-        provider: &P,
-        name: Option<Cow<'a, str>>) -> Cow<'a, str> {
+pub fn ensure_vol_label<'a, P: MediaProvider + NotificationProvider>(provider: &P,
+                                                                     name: Option<Cow<'a, str>>)
+                                                                     -> Cow<'a, str> {
     if let Some(x) = name {
         return x;
     }
@@ -173,7 +173,7 @@ pub fn get_cd_key<P: NotificationProvider>(provider: &P, disc_name: &str) -> Res
             //    with open('cd_key.txt', 'w') as fobj:
             //        fobj.write('%s\n' % key)
             }
-            break
+            break;
         }
     }
     Ok(())
@@ -226,9 +226,8 @@ pub fn rip_ps2<P: RawMediaProvider + NotificationProvider>(provider: &mut P, dis
 /// TODO: Provide prompting via a swappable service provider similar to APT's.
 /// NOTE: We take `name` as a Cow purely for `ensure_vol_label`
 pub fn rip<P, F>(mut plat_provider: &mut P, mode_func: F, name: Option<Cow<str>>) -> Result<()>
-    where
-        P: MediaProvider + NotificationProvider,
-        F: Fn(&mut P, &str) -> Result<()> {
+    where P: MediaProvider + NotificationProvider,
+          F: Fn(&mut P, &str) -> Result<()> {
 
     // TODO: Have a non-rustyline one for simple y/n or Enter stuff.
     plat_provider.read_line("Insert disc and press Enter...");
@@ -237,10 +236,10 @@ pub fn rip<P, F>(mut plat_provider: &mut P, mode_func: F, name: Option<Cow<str>>
     //       if the disc's serial number has changed?
     plat_provider.load()?;
     plat_provider.wait_for_ready(&Duration::new(DEFAULT_TIMEOUT, 0))?;
-    plat_provider.unmount()?;  // Ensure we can get exclusive access to the disc
+    plat_provider.unmount()?; // Ensure we can get exclusive access to the disc
 
     let name = ensure_vol_label(plat_provider, name);
-    assert!(!name.trim().is_empty());  // Guard against empty names
+    assert!(!name.trim().is_empty()); // Guard against empty names
     // with _containing_workdir(disc_name):
         mode_func(&mut plat_provider, &name).map_err(|e| {
             let _ = plat_provider.play_sound(FAIL_SOUND);
@@ -251,7 +250,7 @@ pub fn rip<P, F>(mut plat_provider: &mut P, mode_func: F, name: Option<Cow<str>>
     // TODO: Redesign to deduplicate the audio in PC-related modes.
     let _ = plat_provider.play_sound(DONE_SOUND);
     sleep(Duration::new(2, 0)); // Give me time to reach for the door if it got closed
-    let _ = plat_provider.eject();  // TODO: Notify failure here
+    let _ = plat_provider.eject(); // TODO: Notify failure here
 
     // TODO: Call ['par2create', '-n1', '%s.par2' % name, glob.glob('*')]
 

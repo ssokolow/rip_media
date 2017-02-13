@@ -140,7 +140,7 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
         #[cfg_attr(feature="cargo-clippy", allow(use_debug))]
         let cd_magic = read_exact_at!(dev, 2, SeekFrom::Start(32769));
         if &cd_magic != b"CD" {
-            return Ok("".to_string())
+            return Ok("".to_string());
         }
 
         // http://www.commandlinefu.com/commands/view/12178
@@ -158,7 +158,7 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
             // (According to https://lwn.net/Articles/462178/, this is probably
             //  something we can't readily and reliably block on)
             if File::open(&self.device).is_ok() {
-                return Ok(())
+                return Ok(());
             }
             sleep(Duration::new(1, 0))
         }

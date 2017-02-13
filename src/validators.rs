@@ -57,7 +57,7 @@ mod access {
     #[cfg(test)]
     mod tests {
         use std::ffi::OsStr;
-        use std::os::unix::ffi::OsStrExt;  // TODO: Find a better way to produce invalid UTF-8
+        use std::os::unix::ffi::OsStrExt; // TODO: Find a better way to produce invalid UTF-8
         use super::probably_writable;
 
         #[test]
@@ -150,19 +150,19 @@ pub fn set_size(value: String) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use std::ffi::OsStr;
-    use std::os::unix::ffi::OsStrExt;  // TODO: Find a better way to produce invalid UTF-8
+    use std::os::unix::ffi::OsStrExt; // TODO: Find a better way to produce invalid UTF-8
     use super::{dir_writable, filename_valid, path_readable, set_size};
 
     #[test]
     fn dir_writable_basic_functionality() {
-        assert!(dir_writable(OsStr::new("/tmp")).is_ok());                     // OK Folder
-        assert!(dir_writable(OsStr::new("/dev/null")).is_err());               // OK File
-        assert!(dir_writable(OsStr::new("/etc/shadow")).is_err());             // Denied File
-        assert!(dir_writable(OsStr::new("/etc/ssl/private")).is_err());        // Denied Folder
-        assert!(dir_writable(OsStr::new("/nonexistant_test_path")).is_err());  // Missing Path
-        assert!(dir_writable(OsStr::new("/tmp\0with\0null")).is_err());        // Invalid CString
-        assert!(dir_writable(OsStr::from_bytes(b"/not\xffutf8")).is_err());    // Invalid UTF-8
-        assert!(dir_writable(OsStr::new("/")).is_err());                       // Root
+        assert!(dir_writable(OsStr::new("/tmp")).is_ok());                    // OK Folder
+        assert!(dir_writable(OsStr::new("/dev/null")).is_err());              // OK File
+        assert!(dir_writable(OsStr::new("/etc/shadow")).is_err());            // Denied File
+        assert!(dir_writable(OsStr::new("/etc/ssl/private")).is_err());       // Denied Folder
+        assert!(dir_writable(OsStr::new("/nonexistant_test_path")).is_err()); // Missing Path
+        assert!(dir_writable(OsStr::new("/tmp\0with\0null")).is_err());       // Invalid CString
+        assert!(dir_writable(OsStr::from_bytes(b"/not\xffutf8")).is_err());   // Invalid UTF-8
+        assert!(dir_writable(OsStr::new("/")).is_err());                      // Root
         // TODO: is_dir but fails to canonicalize()
         // TODO: Not-already-canonicalized paths
         // TODO: Non-UTF8 path that actually does exist and is writable
@@ -170,11 +170,11 @@ mod tests {
 
     #[test]
     fn filename_valid_accepts_valid_for_posix() {
-        assert!(filename_valid(OsStr::new("test")).is_ok());     // Basic, uncontroversial OK
-        assert!(filename_valid(OsStr::new("te st")).is_ok());    // Filenames may contain spaces
-        assert!(filename_valid(OsStr::new("te\nst")).is_ok());   // Filenames may contain \n
-        assert!(filename_valid(OsStr::new(".test")).is_ok());    // Filenames may start with .
-        assert!(filename_valid(OsStr::new("test.")).is_ok());    // Filenames may end with .
+        assert!(filename_valid(OsStr::new("test")).is_ok());         // Basic, uncontroversial OK
+        assert!(filename_valid(OsStr::new("te st")).is_ok());        // Filenames may have spaces
+        assert!(filename_valid(OsStr::new("te\nst")).is_ok());       // Filenames may contain \n
+        assert!(filename_valid(OsStr::new(".test")).is_ok());        // Filenames may start with .
+        assert!(filename_valid(OsStr::new("test.")).is_ok());        // Filenames may end with .
         assert!(filename_valid(OsStr::from_bytes(b"\xff")).is_ok()); // POSIX allows invalid UTF-8
     }
 
@@ -193,20 +193,20 @@ mod tests {
 
     #[test]
     fn filename_valid_refuses_invalid_for_posix() {
-        assert!(filename_valid(OsStr::new("")).is_err());        // Filenames may not be empty
-        assert!(filename_valid(OsStr::new("te/st")).is_err());   // POSIX uses / as path separator
-        assert!(filename_valid(OsStr::new("te\0st")).is_err());  // \0 is POSIX's string terminator
+        assert!(filename_valid(OsStr::new("")).is_err());       // Filenames may not be empty
+        assert!(filename_valid(OsStr::new("te/st")).is_err());  // POSIX uses / as path separator
+        assert!(filename_valid(OsStr::new("te\0st")).is_err()); // \0 is POSIX's string terminator
     }
 
     #[test]
     fn path_readable_basic_functionality() {
-        assert!(path_readable(OsStr::new("/")).is_ok());                        // OK Folder
-        assert!(path_readable(OsStr::new("/etc/passwd")).is_ok());              // OK File
-        assert!(path_readable(OsStr::new("/etc/shadow")).is_err());             // Denied File
-        assert!(path_readable(OsStr::new("/etc/ssl/private")).is_err());        // Denied Folder
-        assert!(path_readable(OsStr::new("/nonexistant_test_path")).is_err());  // Missing Path
-        assert!(path_readable(OsStr::new("/null\0containing")).is_err());       // Invalid CString
-        assert!(path_readable(OsStr::from_bytes(b"/not\xffutf8")).is_err());    // Invalid UTF-8
+        assert!(path_readable(OsStr::new("/")).is_ok());                       // OK Folder
+        assert!(path_readable(OsStr::new("/etc/passwd")).is_ok());             // OK File
+        assert!(path_readable(OsStr::new("/etc/shadow")).is_err());            // Denied File
+        assert!(path_readable(OsStr::new("/etc/ssl/private")).is_err());       // Denied Folder
+        assert!(path_readable(OsStr::new("/nonexistant_test_path")).is_err()); // Missing Path
+        assert!(path_readable(OsStr::new("/null\0containing")).is_err());      // Invalid CString
+        assert!(path_readable(OsStr::from_bytes(b"/not\xffutf8")).is_err());   // Invalid UTF-8
         // TODO: Not-already-canonicalized paths
         // TODO: Non-UTF8 path that actually IS valid
         // TODO: ErrorKind::Other
@@ -216,7 +216,7 @@ mod tests {
     fn set_size_requires_positive_base_10_numbers() {
         assert!(set_size("".into()).is_err());
         assert!(set_size("one".into()).is_err());
-        assert!(set_size("a".into()).is_err());  // not base 11 or above
+        assert!(set_size("a".into()).is_err()); // not base 11 or above
         assert!(set_size("0".into()).is_err());
         assert!(set_size("-1".into()).is_err());
     }
@@ -237,7 +237,7 @@ mod tests {
     #[test]
     fn set_size_basic_functionality() {
         assert!(set_size("1".into()).is_ok());
-        assert!(set_size("9".into()).is_ok());     // not base 9 or below
+        assert!(set_size("9".into()).is_ok());    // not base 9 or below
         assert!(set_size("5000".into()).is_ok()); // accept reasonably large numbers
     }
 }
