@@ -53,6 +53,27 @@ mod access {
     pub fn probably_writable<P: AsRef<Path> + ?Sized>(path: &P) -> bool {
         wrapped_access(path.as_ref(), W_OK)
     }
+
+    #[cfg(test)]
+    mod tests {
+        use std::ffi::OsStr;
+        use std::os::unix::ffi::OsStrExt;  // TODO: Find a better way to produce invalid UTF-8
+        use super::probably_writable;
+
+        #[test]
+        fn probably_writable_basic_functionality() {
+            assert!(probably_writable(OsStr::new("/tmp")));                    // OK Folder
+            // TODO: Writable file == Ok
+            assert!(!probably_writable(OsStr::new("/etc/shadow")));            // Denied File
+            assert!(!probably_writable(OsStr::new("/etc/ssl/private")));       // Denied Folder
+            assert!(!probably_writable(OsStr::new("/nonexistant_test_path"))); // Missing Path
+            assert!(!probably_writable(OsStr::new("/tmp\0with\0null")));       // Bad CString
+            assert!(!probably_writable(OsStr::from_bytes(b"/not\xffutf8")));   // Bad UTF-8
+            assert!(!probably_writable(OsStr::new("/")));                      // Root
+            // TODO: Relative path
+            // TODO: Non-UTF8 path that actually does exist and is writable
+        }
+    }
 }
 
 /// Test that the given path **should** be writable
@@ -129,7 +150,6 @@ mod tests {
     use std::ffi::OsStr;
     use std::os::unix::ffi::OsStrExt;  // TODO: Find a better way to produce invalid UTF-8
     use super::{dir_writable, path_readable, set_size};
-    use super::access::probably_writable;
 
     #[test]
     fn dir_writable_basic_functionality() {
@@ -189,21 +209,6 @@ mod tests {
         assert!(set_size("1".into()).is_ok());
         assert!(set_size("9".into()).is_ok());     // not base 9 or below
         assert!(set_size("5000".into()).is_ok()); // accept reasonably large numbers
-    }
-
-    // TODO: Move this into the access module
-    #[test]
-    fn probably_writable_basic_functionality() {
-        assert!(probably_writable(OsStr::new("/tmp")));                    // OK Folder
-        // TODO: Writable file == Ok
-        assert!(!probably_writable(OsStr::new("/etc/shadow")));            // Denied File
-        assert!(!probably_writable(OsStr::new("/etc/ssl/private")));       // Denied Folder
-        assert!(!probably_writable(OsStr::new("/nonexistant_test_path"))); // Missing Path
-        assert!(!probably_writable(OsStr::new("/tmp\0with\0null")));       // Bad CString
-        assert!(!probably_writable(OsStr::from_bytes(b"/not\xffutf8")));   // Bad UTF-8
-        assert!(!probably_writable(OsStr::new("/")));                      // Root
-        // TODO: Relative path
-        // TODO: Non-UTF8 path that actually does exist and is writable
     }
 }
 
