@@ -156,7 +156,7 @@ mod tests {
     #[test]
     fn dir_writable_basic_functionality() {
         assert!(dir_writable(OsStr::new("/tmp")).is_ok());                     // OK Folder
-        // TODO: Writable file == Err
+        assert!(dir_writable(OsStr::new("/dev/null")).is_err());               // OK File
         assert!(dir_writable(OsStr::new("/etc/shadow")).is_err());             // Denied File
         assert!(dir_writable(OsStr::new("/etc/ssl/private")).is_err());        // Denied Folder
         assert!(dir_writable(OsStr::new("/nonexistant_test_path")).is_err());  // Missing Path
