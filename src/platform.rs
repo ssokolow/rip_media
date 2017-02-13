@@ -168,13 +168,15 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
 
     fn wait_for_ready(&self, timeout: &Duration) -> Result<()> {
         let start_time = Instant::now();
-        while start_time.elapsed() < *timeout {
+        loop {
             // Poll for a disc and return early on success
             // (According to https://lwn.net/Articles/462178/, this is probably
             //  something we can't readily and reliably block on)
             if File::open(&self.device).is_ok() {
                 return Ok(());
             }
+            if start_time.elapsed() >= *timeout { break; }
+
             sleep(Duration::new(1, 0))
         }
         bail!("Timed out")
