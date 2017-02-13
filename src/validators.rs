@@ -63,7 +63,7 @@ mod access {
         #[test]
         fn probably_writable_basic_functionality() {
             assert!(probably_writable(OsStr::new("/tmp")));                    // OK Folder
-            // TODO: Writable file == Ok
+            assert!(probably_writable(OsStr::new("/dev/null")));               // OK File
             assert!(!probably_writable(OsStr::new("/etc/shadow")));            // Denied File
             assert!(!probably_writable(OsStr::new("/etc/ssl/private")));       // Denied Folder
             assert!(!probably_writable(OsStr::new("/nonexistant_test_path"))); // Missing Path
