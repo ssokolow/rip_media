@@ -197,7 +197,27 @@ mod tests {
     use std::ffi::OsStr;
     use std::os::unix::ffi::OsStrExt; // TODO: Find a better way to produce invalid UTF-8
     use std::path::Path;
-    use super::{abspath, LinuxPlatformProvider, MediaProvider};
+    use super::{abspath, LinuxPlatformProvider, MediaProvider, RawMediaProvider};
+    // -- Tests for LinuxPlatformProvider.device_path()
+
+    #[test]
+    fn device_path_equals_input_path() {
+        for path_str in &["/", "/etc", "/etc/passwd", "/etc/shadow", "/nonexist"] {
+            device_path_equals_input_path_inner(OsStr::new(&path_str));
+        }
+    }
+
+    #[test]
+    fn device_path_doesnt_modify_invalid_utf8() {
+        device_path_equals_input_path_inner(OsStr::from_bytes(b"/test\xff"));
+    }
+
+    fn device_path_equals_input_path_inner(path_str: &OsStr) {
+            let p = LinuxPlatformProvider::new(Cow::Borrowed(path_str));
+            assert_eq!(p.device_path(), path_str);
+    }
+
+    // -- Tests for LinuxPlatformProvider.volume_label()
 
     fn test_label_failure(path_str: &str) {
         let p_bad = LinuxPlatformProvider::new(Cow::Borrowed(OsStr::new(path_str)));
@@ -220,6 +240,6 @@ mod tests {
     #[test]
     fn volume_label_nonexistant() { test_label_failure("/nonexist_path"); }
 
-    // TODO: More unit tests (eg. make a tiny tiny ISO file for testing)
+    // TODO: More unit tests
 }
 // vim: set sw=4 sts=4 :
