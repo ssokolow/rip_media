@@ -5,10 +5,12 @@ extern crate rustyline;
 use errors::*;
 
 use std::borrow::Cow;
+use std::env;
 use std::ffi::{OsString, OsStr};
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
-use std::path::Path;
+use std::io::Result as IOResult;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
@@ -39,6 +41,13 @@ macro_rules! read_exact_at {
             buf
         }
     }
+}
+
+/// Port of Python's naive `abspath` to be used as a prelude to Path::display()
+/// See this thread for context:
+///   https://www.reddit.com/r/rust/comments/5tmvti/how_can_i_get_the_full_path_of_a_file_from_a/
+fn abspath<P: AsRef<Path> + ?Sized>(relpath: &P) -> IOResult<PathBuf> {
+    env::current_dir().map(|p| p.join(relpath.as_ref()))
 }
 
 /// Interface for manipulating media devices such as DVD drives
@@ -86,7 +95,8 @@ pub struct LinuxPlatformProvider<'a> {
 
 impl<'a> LinuxPlatformProvider<'a> {
     /// Create a `LinuxPlatformProvider` for a given device path
-    /// TODO: By convention, isn't this supposed to be from_* instead?
+    /// TODO: Figure out how to not require the Cow to be manually supplied (eg. From)
+    /// TODO: Ask whether I'm using the proper naming convention for this
     pub fn new(device: Cow<OsStr>) -> LinuxPlatformProvider {
         // TODO: Validate this path
         LinuxPlatformProvider { device: device }
@@ -179,5 +189,35 @@ impl<'a> NotificationProvider for LinuxPlatformProvider<'a> {
     }
 }
 
-// TODO: Unit tests (eg. make a tiny tiny ISO file for testing)
+#[cfg(test)]
+mod tests {
+    use std::borrow::Cow;
+    use std::ffi::OsStr;
+    use std::os::unix::ffi::OsStrExt; // TODO: Find a better way to produce invalid UTF-8
+    use std::path::Path;
+    use super::{abspath, LinuxPlatformProvider, MediaProvider};
+
+    fn test_label_failure(path_str: &str) {
+        let p_bad = LinuxPlatformProvider::new(Cow::Borrowed(OsStr::new(path_str)));
+        assert!(p_bad.volume_label().is_err(), "Expected Error for {:?}", path_str);
+    }
+
+    #[test]
+    fn volume_label_basic_function() {
+        let path = Path::new("fixture.iso");
+        assert!(path.exists(), "Test fixture not found: {}",
+                abspath(path).expect("Tests should have permission to read $PWD").display());
+        let p_good = LinuxPlatformProvider::new(Cow::Borrowed(path.as_os_str()));
+        assert_eq!(p_good.volume_label().expect("fixture.iso has label"), "CDROM");
+    }
+
+    #[test]
+    fn volume_label_bad_format() { test_label_failure("/dev/null"); }
+    #[test]
+    fn volume_label_permission_denied() { test_label_failure("/etc/shadow"); }
+    #[test]
+    fn volume_label_nonexistant() { test_label_failure("/nonexist_path"); }
+
+    // TODO: More unit tests (eg. make a tiny tiny ISO file for testing)
+}
 // vim: set sw=4 sts=4 :
