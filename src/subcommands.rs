@@ -106,8 +106,8 @@ pub fn rip_audio<P: RawMediaProvider>(provider: &mut P, _: &str) -> Result<()> {
                                           path.to_string_lossy()))?;
                 remove_file(&path).or_else(|e|
                     // FIXME: What was the rationale for the following?
-                    if e.kind() == IOErrorKind::NotFound { Err(e) } else { Ok(()) }
-                ).chain_err(|| format!("Could not remove {}", path.to_string_lossy()))?
+                    if e.kind() == IOErrorKind::NotFound { Err(e) } else { Ok(()) })
+                    .chain_err(|| format!("Could not remove {}", path.to_string_lossy()))?
             }
         }
 
@@ -170,8 +170,8 @@ pub fn get_cd_key<P: NotificationProvider>(provider: &P, disc_name: &str) -> Res
         if confirm.to_lowercase() == "y" {
             if !trimmed.is_empty() {
                 unimplemented!();
-            //    with open('cd_key.txt', 'w') as fobj:
-            //        fobj.write('%s\n' % key)
+                // with open('cd_key.txt', 'w') as fobj:
+                //     fobj.write('%s\n' % key)
             }
             break;
         }

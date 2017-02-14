@@ -89,7 +89,9 @@ pub fn dir_writable(value: &OsStr) -> Result<(), OsString> {
     // TODO: Think about how to code this more elegantly (try! perhaps?)
     if let Ok(abs_pathbuf) = path.canonicalize() {
         if let Some(abs_path) = abs_pathbuf.to_str() {
-            if self::access::probably_writable(abs_path) { return Ok(()); }
+            if self::access::probably_writable(abs_path) {
+                return Ok(());
+            }
         }
     }
 
@@ -127,8 +129,7 @@ pub fn path_readable(value: &OsStr) -> Result<(), OsString> {
             // TODO: Return Ok(()) for ErrorKind::Other (we can wait/retry later)
             ErrorKind::Other => "unknown OS error (medium not ready?)",
             _ => e.description()
-        }).into()
-    )
+        }).into())
 }
 
 /// TODO: Find a way to make *clap* mention which argument failed validation

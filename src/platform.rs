@@ -106,7 +106,9 @@ impl<'a> LinuxPlatformProvider<'a> {
 
 impl<'a> RawMediaProvider for LinuxPlatformProvider<'a> {
     // TODO: Actually think about this API and refactor.
-    fn device_path(&self) -> OsString { self.device.clone().into_owned() }
+    fn device_path(&self) -> OsString {
+        self.device.clone().into_owned()
+    }
 }
 
 impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
@@ -117,8 +119,7 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
 
     fn load(&mut self) -> Result<()> {
         subprocess_call!("eject", "-t", &self.device)
-            .chain_err(|| format!("Could not load media for {}",
-                                  &self.device.to_string_lossy()))
+            .chain_err(|| format!("Could not load media for {}", &self.device.to_string_lossy()))
     }
 
     fn unmount(&mut self) -> Result<()> {
@@ -139,7 +140,7 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
                         .map(|o| String::from_utf8_lossy(o.stdout.as_slice()).trim().to_owned()) {
                         // XXX: Handle some types of blkid failure?
             if !label.is_empty() {
-                return Ok(label)  // TODO: Is there a more idiomatic early return for Ok()?
+                return Ok(label); // TODO: Is there a more idiomatic early return for Ok()?
             }
         }
 
@@ -173,7 +174,9 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
             if File::open(&self.device).is_ok() {
                 return Ok(());
             }
-            if start_time.elapsed() >= *timeout { break; }
+            if start_time.elapsed() >= *timeout {
+                break;
+            }
 
             sleep(Duration::new(1, 0))
         }
@@ -184,13 +187,13 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
 impl<'a> NotificationProvider for LinuxPlatformProvider<'a> {
     fn play_sound<P: AsRef<Path> + ?Sized>(&mut self, path: &P) -> Result<()> {
         subprocess_call!("play", "-q", path.as_ref())
-                .chain_err(|| format!("Could not play {}", path.as_ref().to_string_lossy()))
+            .chain_err(|| format!("Could not play {}", path.as_ref().to_string_lossy()))
     }
 
     fn read_line(&self, prompt: &str) -> Result<String> {
         let mut rl = Editor::<()>::new();
-        rl.readline(prompt).chain_err(
-            || format!("Failed to request information from user with: {}", prompt))
+        rl.readline(prompt)
+            .chain_err(|| format!("Failed to request information from user with: {}", prompt))
     }
 }
 
@@ -281,8 +284,8 @@ mod tests {
     }
 
     fn device_path_equals_input_path_inner(path_str: &OsStr) {
-            let p = LinuxPlatformProvider::new(Cow::Borrowed(path_str));
-            assert_eq!(p.device_path(), path_str);
+        let p = LinuxPlatformProvider::new(Cow::Borrowed(path_str));
+        assert_eq!(p.device_path(), path_str);
     }
 
     // -- Tests for LinuxPlatformProvider.volume_label()
@@ -301,8 +304,8 @@ mod tests {
     #[test]
     fn volume_label_bad_format() {
         test_label_failure("/dev/null");
-        test_label_failure("/etc/passwd");  // "can't seek that far" code branch
-        test_label_failure("/bin/bash");    // "bad magic number" code branch
+        test_label_failure("/etc/passwd"); // "can't seek that far" code branch
+        test_label_failure("/bin/bash");   // "bad magic number" code branch
     }
     #[test]
     fn volume_label_not_a_file() { test_label_failure("/"); }
@@ -317,7 +320,7 @@ mod tests {
     /// Test that it actually calls `sleep`
     fn wait_for_ready_actually_waits() {
         let p_bad = LinuxPlatformProvider::new(Cow::Borrowed(OsStr::new("/etc/shadow")));
-        let timeout = Duration::new(2, 0);  // Allow at least one sleep() call
+        let timeout = Duration::new(2, 0); // Allow at least one sleep() call
 
         let start = Instant::now();
         assert!(p_bad.wait_for_ready(&timeout).is_err());
