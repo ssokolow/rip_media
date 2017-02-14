@@ -186,7 +186,7 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
 
 impl<'a> NotificationProvider for LinuxPlatformProvider<'a> {
     fn play_sound<P: AsRef<Path> + ?Sized>(&mut self, path: &P) -> Result<()> {
-        subprocess_call!("play", "-q", path.as_ref())
+        subprocess_call!("play", "-V0", path.as_ref())
             .chain_err(|| format!("Could not play {}", path.as_ref().to_string_lossy()))
     }
 
