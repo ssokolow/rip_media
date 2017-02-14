@@ -5,12 +5,10 @@ extern crate rustyline;
 use errors::*;
 
 use std::borrow::Cow;
-use std::env;
 use std::ffi::{OsString, OsStr};
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
-use std::io::Result as IOResult;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
@@ -26,14 +24,15 @@ macro_rules! subprocess_call {
     ( $cmd:expr, $( $arg:expr ), * ) => {
         Command::new($cmd)
                 $(.arg($arg))*
-                .status().and_then(|status| match status.success() {
-                    true => Ok(()),
-                    false => Err(::std::io::Error::new(::std::io::ErrorKind::Other,
-                                                      match status.code(){
-                        // TODO: Refactor to propagate the un-formatted code somehow
-                            Some(code) => format!("{:?} exited with code {:?}", $cmd, code),
-                            None => format!("{:?} killed by signal", $cmd)
-                        }))
+                .status().and_then(|status| if status.success() {
+                        Ok(())
+                    } else {
+                        let cmd = ::std::path::Path::new($cmd).display();
+                        Err(::std::io::Error::new(::std::io::ErrorKind::Other, match status.code(){
+                                // TODO: Refactor to propagate the un-formatted code somehow
+                                Some(code) => format!("{} exited with code {}", cmd, code),
+                                None => format!("{} killed by signal", cmd)
+                            }))
                 })
     }
 }
@@ -42,6 +41,7 @@ macro_rules! subprocess_call {
 macro_rules! read_exact_at {
     ( $file:expr, $bytes:expr, $offset:expr ) => {
         {
+            // TODO: Find a way to silence `use_debug` complaints here rather than in every caller
             let mut buf = [0; $bytes];
             $file.seek($offset).chain_err(|| format!("Failed to seek to offset {:?}", $offset))?;
             $file.read_exact(&mut buf)
@@ -49,16 +49,6 @@ macro_rules! read_exact_at {
             buf
         }
     }
-}
-
-/// Port of Python's naive `abspath` to be used as a prelude to Path::display()
-///
-/// **WARNING:** This won't handle drive-relative paths on Windows properly. (ie. c:win.com)
-///
-/// See this thread for context:
-///   https://www.reddit.com/r/rust/comments/5tmvti/how_can_i_get_the_full_path_of_a_file_from_a/
-fn abspath<P: AsRef<Path> + ?Sized>(relpath: &P) -> IOResult<PathBuf> {
-    env::current_dir().map(|p| p.join(relpath.as_ref()))
 }
 
 /// Interface for manipulating media devices such as DVD drives
@@ -160,7 +150,7 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
 
         // Safety check for non-ISO9660 filesystems
         // http://www.cnwrecovery.co.uk/html/iso9660_disks.html
-        #[cfg_attr(feature="cargo-clippy", allow(use_debug))]
+        #[allow(use_debug)]
         let cd_magic = read_exact_at!(dev, 2, SeekFrom::Start(32769));
         if &cd_magic != b"CD" {
             bail!("Unrecognized file format");
@@ -169,7 +159,7 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
         // http://www.commandlinefu.com/commands/view/12178
         // TODO: Find the spec to see if the split is really needed
         //       (My test discs were space-padded)
-        #[cfg_attr(feature="cargo-clippy", allow(use_debug))]
+        #[allow(use_debug)]
         Ok(String::from_utf8_lossy(&read_exact_at!(dev, 32, SeekFrom::Start(32808)))
                   .split('\0').next().unwrap_or("").trim().to_owned())
     }
@@ -207,12 +197,23 @@ impl<'a> NotificationProvider for LinuxPlatformProvider<'a> {
 #[cfg(test)]
 mod tests {
     use std::borrow::Cow;
+    use std::env;
     use std::ffi::OsStr;
+    use std::io::Result as IOResult;
     use std::os::unix::ffi::OsStrExt; // TODO: Find a better way to produce invalid UTF-8
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
     use std::time::{Duration, Instant};
-    use super::{abspath, LinuxPlatformProvider,
-                MediaProvider, NotificationProvider, RawMediaProvider};
+    use super::{LinuxPlatformProvider, MediaProvider, NotificationProvider, RawMediaProvider};
+
+    /// Port of Python's naive `abspath` to be used as a prelude to `Path::display`
+    ///
+    /// **WARNING:** This won't handle drive-relative paths on Windows properly. (ie. c:win.com)
+    ///
+    /// See this thread for context:
+    /// https://www.reddit.com/r/rust/comments/5tmvti/how_can_i_get_the_full_path_of_a_file_from_a/
+    fn abspath<P: AsRef<Path> + ?Sized>(relpath: &P) -> IOResult<PathBuf> {
+        env::current_dir().map(|p| p.join(relpath.as_ref()))
+    }
 
     /// TODO: Tests for macros
 

@@ -59,7 +59,7 @@ pub fn rip_bin<P: RawMediaProvider>(provider: &P,
                                                    tocfile.to_string_lossy()))?;
     }
 
-    // TODO: Better way to make audio tracks obvious
+    // TODO: Do this without shelling out, then find a better way to make audio tracks obvious
     let _ = subprocess_call!("cat", cuefile);
     Ok(())
 }

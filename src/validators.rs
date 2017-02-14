@@ -83,8 +83,7 @@ pub fn dir_writable(value: &OsStr) -> Result<(), OsString> {
     // Test that the path is a directory
     // (Check before, not after, as an extra safety guard on the unsafe block)
     if !path.is_dir() {
-        #[allow(use_debug)]
-        return Err(format!("Not a directory: {:?}", value).into());
+        return Err(format!("Not a directory: {}", path.display()).into());
     }
 
     // TODO: Think about how to code this more elegantly (try! perhaps?)
@@ -94,8 +93,7 @@ pub fn dir_writable(value: &OsStr) -> Result<(), OsString> {
         }
     }
 
-    #[allow(use_debug)]
-    Err(format!("Would be unable to write to destination directory: {:?}", value).into())
+    Err(format!("Would be unable to write to destination directory: {}", path.display()).into())
 }
 
 /// Test that the given string doesn't contain any `INVALID_FILENAME_CHARS`
@@ -124,7 +122,7 @@ pub fn path_readable(value: &OsStr) -> Result<(), OsString> {
     File::open(&value).map(|_| ()).map_err(|e|
         // TODO: Custom error type to avoid risking stringly-typed matching
         //       https://brson.github.io/2016/11/30/starting-with-error-chain
-        format!("{:?}: {}", value, match e.kind() {
+        format!("{}: {}", Path::new(value).display(), match e.kind() {
             ErrorKind::NotFound => "path does not exist",
             // TODO: Return Ok(()) for ErrorKind::Other (we can wait/retry later)
             ErrorKind::Other => "unknown OS error (medium not ready?)",
