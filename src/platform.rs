@@ -254,14 +254,21 @@ mod tests {
         assert_eq!(get_iso_provider().volume_label().expect("fixture.iso has label"), "CDROM");
     }
 
+    // TODO: Familiarize myself with error-chain enough to return ErrorKinds and test them here
     #[test]
-    fn volume_label_bad_format() { test_label_failure("/dev/null"); }
+    fn volume_label_bad_format() {
+        test_label_failure("/dev/null");
+        test_label_failure("/etc/passwd");  // "can't seek that far" code branch
+        test_label_failure("/bin/bash");    // "bad magic number" code branch
+    }
+    #[test]
+    fn volume_label_not_a_file() { test_label_failure("/"); }
     #[test]
     fn volume_label_permission_denied() { test_label_failure("/etc/shadow"); }
     #[test]
     fn volume_label_nonexistant() { test_label_failure("/nonexist_path"); }
 
-    // TODO: More unit tests
+    // -- Tests for LinuxPlatformProvider.wait_for_ready()
 
     #[test]
     /// Test that it actually calls `sleep`
