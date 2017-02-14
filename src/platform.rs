@@ -203,9 +203,10 @@ mod tests {
     use std::os::unix::ffi::OsStrExt; // TODO: Find a better way to produce invalid UTF-8
     use std::path::Path;
     use std::time::{Duration, Instant};
-    use super::{abspath, LinuxPlatformProvider, MediaProvider, RawMediaProvider};
+    use super::{abspath, LinuxPlatformProvider,
+                MediaProvider, NotificationProvider, RawMediaProvider};
 
-    // TODO: Test abspath with relative paths
+    /// TODO: Tests for macros
 
     /// Helper to deduplicate getting a platform provider pointed at the test fixture
     fn get_iso_provider<'a>() -> LinuxPlatformProvider<'a> {
@@ -222,6 +223,39 @@ mod tests {
             assert_eq!(abspath(path).expect("abspath must never fail with null-free input"), path)
         }
     }
+    // TODO: Test abspath with relative paths
+
+    #[test]
+    fn eject_reports_failure_properly() {
+        let mut p_bad = LinuxPlatformProvider::new(Cow::Borrowed(OsStr::new("/etc/shadow")));
+        assert!(p_bad.eject().is_err());
+    }
+    // TODO: Find a good way to test the success case for `eject`
+
+    #[test]
+    fn load_reports_failure_properly() {
+        let mut p_bad = LinuxPlatformProvider::new(Cow::Borrowed(OsStr::new("/etc/shadow")));
+        assert!(p_bad.load().is_err());
+    }
+    // TODO: Find a good way to test the success case for `load`
+
+    #[test]
+    fn play_sound_reports_failure_properly() {
+        let mut p_good = get_iso_provider();
+        let mut p_bad = LinuxPlatformProvider::new(Cow::Borrowed(OsStr::new("/etc/shadow")));
+        assert!(p_bad.play_sound("/dev/null").is_err());
+        assert!(p_good.play_sound("/dev/null").is_err());
+    }
+    // TODO: Find a good way to test the success case for `play_sound`
+
+    // TODO: Find a way to test `read_line`
+
+    #[test]
+    fn unmount_reports_failure_properly() {
+        let mut p_bad = LinuxPlatformProvider::new(Cow::Borrowed(OsStr::new("/etc/shadow")));
+        assert!(p_bad.unmount().is_err());
+    }
+    // TODO: Find a good way to test the success case for `unmount`
 
     // -- Tests for LinuxPlatformProvider.device_path()
 
