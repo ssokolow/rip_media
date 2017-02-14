@@ -26,7 +26,15 @@ macro_rules! subprocess_call {
     ( $cmd:expr, $( $arg:expr ), * ) => {
         Command::new($cmd)
                 $(.arg($arg))*
-                .status().map(|_| ())
+                .status().and_then(|status| match status.success() {
+                    true => Ok(()),
+                    false => Err(::std::io::Error::new(::std::io::ErrorKind::Other,
+                                                      match status.code(){
+                        // TODO: Refactor to propagate the un-formatted code somehow
+                            Some(code) => format!("{:?} exited with code {:?}", $cmd, code),
+                            None => format!("{:?} killed by signal", $cmd)
+                        }))
+                })
     }
 }
 
@@ -35,7 +43,7 @@ macro_rules! read_exact_at {
     ( $file:expr, $bytes:expr, $offset:expr ) => {
         {
             let mut buf = [0; $bytes];
-            $file.seek($offset).chain_err(|| "Failed to seek")?;
+            $file.seek($offset).chain_err(|| format!("Failed to seek to offset {:?}", $offset))?;
             $file.read_exact(&mut buf)
                  .chain_err(|| format!("Could not read {} bytes from {:?}", $bytes, $file))?;
             buf
@@ -118,7 +126,7 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
     }
 
     fn load(&mut self) -> Result<()> {
-        subprocess_call!("eject", "-t", &self.device).map(|_| ())
+        subprocess_call!("eject", "-t", &self.device)
             .chain_err(|| format!("Could not load media for {}",
                                   &self.device.to_string_lossy()))
     }
