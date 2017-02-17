@@ -253,6 +253,9 @@ mod tests {
     use std::borrow::Cow;
     use super::{AppConfig, make_clap_parser};
 
+    /// TODO: Use a macro to generate the positionality/default-validation tests and also apply
+    /// them to outdir
+
     #[test]
     /// Can override DEFAULT_INPATH when specifying -i before the subcommand
     fn test_can_override_inpath_before() {
@@ -274,22 +277,24 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     /// Validator doesn't get run on the default inpath if -i was specified
     fn test_only_validates_inpath_to_be_used_before() {
         let defaults = AppConfig { inpath: Cow::Borrowed("/etc/shadow") };
-        let matches = make_clap_parser(&defaults).get_matches_from(&["rip_media", "-i/", "cd"]);
+        let matches = make_clap_parser(&defaults)
+            .get_matches_from_safe(&["rip_media", "-i/", "cd"])
+            .unwrap_or_else(|e| { panic!("Undesired failure on input: {}", e) });
         let inpath = matches.value_of("inpath").unwrap();
         assert!(inpath == "/",
                 "\"cd -i/\" should have produced \"/\" but actually produced \"{}\"", inpath)
     }
 
     #[test]
-    #[ignore]
     /// Validator doesn't get run on the default inpath if -i was specified
     fn test_only_validates_inpath_to_be_used_after() {
         let defaults = AppConfig { inpath: Cow::Borrowed("/etc/shadow") };
-        let matches = make_clap_parser(&defaults).get_matches_from(&["rip_media", "cd", "-i/"]);
+        let matches = make_clap_parser(&defaults)
+            .get_matches_from_safe(&["rip_media", "cd", "-i/"])
+            .unwrap_or_else(|e| { panic!("Undesired failure on input: {}", e) });
         let inpath = matches.value_of("inpath").unwrap();
         assert!(inpath == "/",
                 "\"cd -i/\" should have produced \"/\" but actually produced \"{}\"", inpath)
