@@ -142,7 +142,7 @@ pub fn ensure_vol_label<'a, P: MediaProvider + NotificationProvider>(provider: &
     while name.trim().is_empty() {
         // Do this inside the loop so I can press Enter to retry reading
         // TODO: Think of better UX for this
-        name = provider.volume_label().unwrap_or_else(|_| String::from("")).trim().to_string();
+        name = provider.volume_label().unwrap_or_default().trim().to_string();
 
         if name.is_empty() {
             // FIXME: Do I make this fallible or swallow the error?
