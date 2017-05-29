@@ -100,7 +100,7 @@ impl<'a> LinuxPlatformProvider<'a> {
     /// TODO: Ask whether I'm using the proper naming convention for this
     pub fn new(device: Cow<OsStr>) -> LinuxPlatformProvider {
         // TODO: Validate this path
-        LinuxPlatformProvider { device: device }
+        LinuxPlatformProvider { device }
     }
 }
 
