@@ -98,8 +98,8 @@ mod subcommands;
 // TODO: Allow overriding in a config file (Perhaps via .env with
 //       https://siciarz.net/24-days-rust-environment-variables)
 /// Default path to read from if none is specified
-const DEFAULT_INPATH: &'static str = "/dev/sr0";
-// const RETRODE_INPATH: &'static str = "/media/ssokolow/RETRODE";
+const DEFAULT_INPATH: &str = "/dev/sr0";
+// const RETRODE_INPATH: &str = "/media/ssokolow/RETRODE";
 // TODO: Use libblkid to look up RETRODE at runtime:
 // https://www.kernel.org/pub/linux/utils/util-linux/v2.21/libblkid-docs/libblkid-Tags-and-Spec-evaluation.html
 //

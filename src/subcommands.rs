@@ -16,10 +16,10 @@ use platform::{MediaProvider, NotificationProvider, RawMediaProvider, DEFAULT_TI
 
 /// Sound to play on completion
 /// TODO: Rearchitect once I've finished the basic port
-const DONE_SOUND: &'static str = "/usr/share/sounds/KDE-Im-Nudge.ogg";
+const DONE_SOUND: &str = "/usr/share/sounds/KDE-Im-Nudge.ogg";
 
 /// Sound to play on failure
-const FAIL_SOUND: &'static str = "/usr/share/sounds/KDE-K3B-Finish-Error.ogg";
+const FAIL_SOUND: &str = "/usr/share/sounds/KDE-K3B-Finish-Error.ogg";
 
 /// Dump a disc to as raw a BIN/TOC/CUE set as possible using cdrdao.
 pub fn rip_bin<P: RawMediaProvider>(provider: &P,

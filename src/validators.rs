@@ -6,7 +6,7 @@ use std::path::Path;
 
 /// Characters invalid under NTFS in the Win32 namespace
 /// TODO: Probably best to impose FAT32 limits instead in case of flash drives
-const INVALID_FILENAME_CHARS: &'static str = "/\\:*?\"<>|\0";
+const INVALID_FILENAME_CHARS: &str = "/\\:*?\"<>|\0";
 
 /// The effects of unsafety cannot be isolated with more granularity than a
 /// module scope because of how public/private access control works, so isolate
