@@ -62,7 +62,7 @@
 
 // Use musl's malloc when building on nightly for maximum size reduction
 #![cfg_attr(feature="nightly", feature(alloc_system))]
-#[cfg(feature="nightly")]
+#[cfg(feature = "nightly")]
 extern crate alloc_system;
 
 /// `error_chain` imports
