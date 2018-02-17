@@ -84,8 +84,8 @@ pub fn rip_iso<P: RawMediaProvider>(provider: &P, disc_name: &str) -> Result<()>
 /// Rip an audio CD using cdparanoia
 pub fn rip_audio<P: RawMediaProvider>(provider: &mut P, _: &str) -> Result<()> {
     // TODO: Decide on how to specify policy for skip-control options
-    // TODO: Use morituri instead, since it does everything we want already
-    //       https://github.com/thomasvs/morituri
+    // TODO: Use whipper instead, since it does everything we want already
+    //       https://github.com/JoeLametta/whipper
     subprocess_call!("cdparanoia", "-B", "-d", provider.device_path())
         .chain_err(|| "Failed to extract CD audio properly")?;
 
