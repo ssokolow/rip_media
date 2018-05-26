@@ -14,7 +14,7 @@ const INVALID_FILENAME_CHARS: &str = "/\\:*?\"<>|\0";
 /// refactoring this file.
 mod access {
     /// TODO: Make this wrapper portable
-    ///       https://doc.rust-lang.org/book/conditional-compilation.html
+    ///       <https://doc.rust-lang.org/book/conditional-compilation.html>
     /// TODO: Consider making `wrapped_access` typesafe using the `bitflags`
     ///       crate `clap` pulled in
     extern crate libc;
@@ -99,13 +99,13 @@ pub fn dir_writable(value: &OsStr) -> Result<(), OsString> {
 }
 
 /// Test that the given string doesn't contain any `INVALID_FILENAME_CHARS`
-/// Adapted from http://stackoverflow.com/a/30791678
+/// Adapted from <http://stackoverflow.com/a/30791678>
 ///
 /// TODO: Is there a way to ask the filesystem itself whether a name is OK?
 pub fn filename_valid(value: &OsStr) -> Result<(), OsString> {
     // TODO: Switch to using to_bytes() once it's stabilized
     if value.to_string_lossy().chars().any(|c| is_bad_for_fname(&c)) {
-        #[allow(use_debug)]
+        #[cfg_attr(feature="cargo-clippy", allow(use_debug))]
         Err(format!("Name contains invalid characters: {:?}", value).into())
     } else if value.is_empty() {
         Err("Name is empty".into())
@@ -134,6 +134,7 @@ pub fn path_readable(value: &OsStr) -> Result<(), OsString> {
 
 /// TODO: Find a way to make *clap* mention which argument failed validation
 ///       so my validator can be generic (A closure, maybe?)
+#[cfg_attr(feature="cargo-clippy", allow(needless_pass_by_value))]
 pub fn set_size(value: String) -> Result<(), String> {
     // I can't imagine needing more than u8... no harm in being flexible here
     if let Ok(num) = value.parse::<u32>() {

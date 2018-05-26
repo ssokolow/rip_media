@@ -151,7 +151,7 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
 
         // Safety check for non-ISO9660 filesystems
         // http://www.cnwrecovery.co.uk/html/iso9660_disks.html
-        #[allow(use_debug)]
+        #[cfg_attr(feature="cargo-clippy", allow(use_debug))]
         let cd_magic = read_exact_at!(dev, 2, SeekFrom::Start(32769));
         if &cd_magic != b"CD" {
             bail!("Unrecognized file format");
@@ -160,7 +160,7 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
         // http://www.commandlinefu.com/commands/view/12178
         // TODO: Find the spec to see if the split is really needed
         //       (My test discs were space-padded)
-        #[allow(use_debug)]
+        #[cfg_attr(feature="cargo-clippy", allow(use_debug))]
         Ok(String::from_utf8_lossy(&read_exact_at!(dev, 32, SeekFrom::Start(32808)))
                   .split('\0').next().unwrap_or("").trim().to_owned())
     }

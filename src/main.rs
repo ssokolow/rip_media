@@ -55,7 +55,7 @@
 // TODO: Once clippy is included in stable, don't feature-gate my warnings
 // (Or at least find a way to enable build-time and `cargo clippy`-time with a single feature)
 // Set clippy into a whitelist-based configuration so I'll see new lints as they come in
-#![cfg_attr(feature="cargo-clippy", warn(clippy_pedantic, clippy_restrictions))]
+#![cfg_attr(feature="cargo-clippy", warn(clippy_pedantic))]
 
 // Opt out of the lints I've seen and don't want
 #![cfg_attr(feature="cargo-clippy", allow(assign_ops, float_arithmetic))]
@@ -74,6 +74,7 @@ mod errors {
     error_chain!{}
 }
 
+#[allow(unused_imports)]
 use errors::*;
 
 /// libstd imports
@@ -130,7 +131,7 @@ impl<'a> Default for AppConfig<'a> {
 /// validated (and failures handled) on **every** use.
 ///
 /// See Also:
-///  http://blog.ssokolow.com/archives/2016/10/17/a-more-formal-way-to-think-about-validity-of-input-data/
+///  <http://blog.ssokolow.com/archives/2016/10/17/a-more-formal-way-to-think-about-validity-of-input-data/>
 
 /// Wrapper for `Arg::from_usage` to deduplicate setting a few things all args have
 /// TODO: Does Clap provide a more proper way to set defaults than this?
