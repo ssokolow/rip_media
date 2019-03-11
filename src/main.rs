@@ -49,21 +49,15 @@
 // `error_chain` recursion adjustment
 #![recursion_limit = "1024"]
 
-// Make rustc's built-in lints more strict (I'll opt back out selectively)
-#![warn(warnings)]
+// Make lints stricter and then whitelist the ones I'm OK with.
+#![warn(warnings, clippy::all, clippy::complexity, clippy::correctness, clippy::pedantic,
+        clippy::perf, clippy::style, clippy::restriction)]
 
-// TODO: Once clippy is included in stable, don't feature-gate my warnings
-// (Or at least find a way to enable build-time and `cargo clippy`-time with a single feature)
-// Set clippy into a whitelist-based configuration so I'll see new lints as they come in
-#![cfg_attr(feature="cargo-clippy", warn(clippy_pedantic))]
+use std::alloc::System;
 
-// Opt out of the lints I've seen and don't want
-#![cfg_attr(feature="cargo-clippy", allow(assign_ops, float_arithmetic))]
-
-// Use musl's malloc when building on nightly for maximum size reduction
-#![cfg_attr(feature="nightly", feature(alloc_system))]
-#[cfg(feature = "nightly")]
-extern crate alloc_system;
+/// Use the system allocator to avoid wasting space on jemalloc in a transient little app
+#[global_allocator]
+static GLOBAL: System = System;
 
 /// `error_chain` imports
 #[macro_use]
