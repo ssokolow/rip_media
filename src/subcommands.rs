@@ -138,15 +138,15 @@ pub fn ensure_vol_label<'a, P: MediaProvider + NotificationProvider>(provider: &
     // Fall back to prompting (and ensure we get a non-empty name)
     // TODO: but do it with a timeout so the user can run the script and then take
     //       their time loading the disc if they prefer that order of operations
-    let mut name = "".to_string();
+    let mut name = "".to_owned();
     while name.trim().is_empty() {
         // Do this inside the loop so I can press Enter to retry reading
         // TODO: Think of better UX for this
-        name = provider.volume_label().unwrap_or_default().trim().to_string();
+        name = provider.volume_label().unwrap_or_default().trim().to_owned();
 
         if name.is_empty() {
             // FIXME: Do I make this fallible or swallow the error?
-            // name = provider.read_line("Disc Name: ")?.trim().to_string();
+            // name = provider.read_line("Disc Name: ")?.trim().to_owned();
             unimplemented!()
         }
     }
