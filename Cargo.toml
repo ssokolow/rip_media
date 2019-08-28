@@ -2,25 +2,24 @@
 name = "rip_media"
 version = "0.1.0"
 authors = ["Stephan Sokolow <http://www.ssokolow.com/ContactMe>"]
+edition = "2018"
 
 [dependencies]
-clap = "2"
-libc = "0.2.17"
+log = "0.4"
+stderrlog = "0.4"
+structopt = "0.2"
+libc = "0.2"
 glob = "0.2.11"
 rustyline = "1"
 
 [dependencies.error-chain]
-version = "0.9"
+version = "0.12"
 default-features = false  # disable pulling in backtrace
 
 [profile.release]
 lto = true
-panic = 'abort'
 codegen-units = 1
+opt-level = "z"
 
-# We need to specify this explicitly so sed can swap the 3 for "z" in
-# release.sh when running with --nightly
-opt-level = 3
-
-[features]
-nightly = []
+# Uncomment to sacrifice Drop-on-panic cleanup for 20K space saving
+#panic = 'abort'
