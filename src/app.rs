@@ -12,7 +12,7 @@ use structopt::{clap, StructOpt};
 use log::{debug, error, info, trace, warn};
 
 // Local Imports
-use crate::errors::*;
+use crate::errors::Result;
 use crate::validators::{dir_writable, filename_valid_portable, path_readable};
 use crate::{platform, subcommands};
 
@@ -137,79 +137,55 @@ pub struct CliOpts {
     )]
     set_size: usize,
 
-    // -- Subcommands --
+    /// Which subcommand to invoke
     #[structopt(subcommand)]
     cmd: Command,
 }
 
+/// Valid subcommands
+#[allow(clippy::upper_case_acronyms)]
 #[derive(StructOpt, Debug)]
 #[structopt(rename_all = "kebab-case", raw(template = "HELP_TEMPLATE"))]
 pub enum Command {
     /// Rip an audio CD
-    #[structopt(
-        display_order = 1,
-        raw(template = "HELP_TEMPLATE")
-    )]
+    #[structopt(display_order = 1, raw(template = "HELP_TEMPLATE"))]
     Audio,
 
     /// Rip a PC CD-ROM
-    #[structopt(
-        display_order = 1,
-        raw(template = "HELP_TEMPLATE")
-    )]
+    #[structopt(display_order = 1, raw(template = "HELP_TEMPLATE"))]
     CD,
 
     /// Rip a PC DVD-ROM
-    #[structopt(
-        display_order = 1,
-        raw(template = "HELP_TEMPLATE")
-    )]
+    #[structopt(display_order = 1, raw(template = "HELP_TEMPLATE"))]
     DVD,
 
     /// Rip a Sony PlayStation (PSX) disc in a PCSX/mednafen-compatible format
-    #[structopt(
-        display_order = 1,
-        raw(template = "HELP_TEMPLATE")
-    )]
+    #[structopt(display_order = 1, raw(template = "HELP_TEMPLATE"))]
     PSX,
 
     /// Rip a Sony PlayStation 2 disc into a PCSX2-compatible format
-    #[structopt(
-        display_order = 1,
-        raw(template = "HELP_TEMPLATE")
-    )]
+    #[structopt(display_order = 1, raw(template = "HELP_TEMPLATE"))]
     PS2,
 
     /// Rip a cartridge connected to the PC via a Retrode
-    #[structopt(
-        display_order = 2,
-        raw(template = "HELP_TEMPLATE")
-    )]
+    #[structopt(display_order = 2, raw(template = "HELP_TEMPLATE"))]
     Retrode,
 
     /// Rip a UMD via a USB-connected PSP running custom firmware
-    #[structopt(
-        display_order = 2,
-        raw(template = "HELP_TEMPLATE")
-    )]
+    #[structopt(display_order = 2, raw(template = "HELP_TEMPLATE"))]
     UMD,
 
     /// Validate and process a disc image dumped by a Wii running CleanRip
-    #[structopt(
-        display_order = 2,
-        raw(template = "HELP_TEMPLATE")
-    )]
+    #[structopt(display_order = 2, raw(template = "HELP_TEMPLATE"))]
     Cleanrip {
         // TODO: Can I make this an --in-place option shared among subcommands?
-        #[structopt(long, help = "Only run the hash-validation without processing further")]
+        /// Only run the hash-validation without processing further
+        #[structopt(long)]
         just_validate: bool,
     },
 
     /// Recover a damaged CD
-    #[structopt(
-        display_order = 1,
-        raw(template = "HELP_TEMPLATE")
-    )]
+    #[structopt(display_order = 1, raw(template = "HELP_TEMPLATE"))]
     Damaged,
 }
 
@@ -239,24 +215,22 @@ pub fn main(opts: CliOpts) -> Result<()> {
     //    for _ in range(0, args.set_size):
     // TODO: Actually put set_size things in the same folder
     // TODO: Unify error-handling and replace expect() with ok_or() and ?
-    let mut provider =
-        platform::LinuxPlatformProvider::new(Cow::Borrowed(&opts.inpath.as_os_str()));
-    subcommands::rip(&mut provider, subcommand_func, opts.name.as_ref().map(String::as_ref));
+    let mut provider = platform::LinuxPlatformProvider::new(Cow::Borrowed(opts.inpath.as_os_str()));
+    subcommands::rip(&mut provider, subcommand_func, opts.name.as_ref().map(String::as_ref))?;
 
     Ok(()) // TODO
 }
 
 /// TODO: Find a way to make *clap* mention which argument failed validation
 ///       so my validator can be generic (A closure, maybe?)
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 pub fn valid_set_size(value: String) -> std::result::Result<(), String> {
     // I can't imagine needing more than u8... no harm in being flexible here
     if let Ok(num) = value.parse::<u32>() {
-        if num >= 1_u32 {
+        if num >= 1u32 {
             return Ok(());
-        } else {
-            return Err(format!("Set size must be 1 or greater (not \"{}\")", value));
         }
+        return Err(format!("Set size must be 1 or greater (not \"{}\")", value));
     }
     Err(format!("Set size must be an integer (whole number), not \"{}\"", value))
 }
@@ -293,7 +267,7 @@ mod tests {
     }
 
     #[test]
-    /// Can override DEFAULT_INPATH when specifying -i before the subcommand
+    /// Can override `DEFAULT_INPATH` when specifying -i before the subcommand
     fn test_can_override_inpath_before() {
         let opts = CliOpts::from_iter(&["rip_media", "-i/", "cd"]);
         assert!(
@@ -304,7 +278,7 @@ mod tests {
     }
 
     #[test]
-    /// Can override DEFAULT_INPATH when specifying -i after the subcommand
+    /// Can override `DEFAULT_INPATH` when specifying -i after the subcommand
     fn test_can_override_inpath_after() {
         let opts = CliOpts::from_iter(&["rip_media", "cd", "-i/"]);
         assert!(

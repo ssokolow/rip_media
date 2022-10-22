@@ -1,11 +1,10 @@
 //! Abstraction around the underlying OS functionality
 
-extern crate rustyline;
-
-use errors::*;
+use crate::errors::{Result, ResultExt};
+use error_chain::bail;
 
 use std::borrow::Cow;
-use std::ffi::{OsString, OsStr};
+use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
@@ -13,7 +12,7 @@ use std::process::Command;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-use self::rustyline::Editor;
+use rustyline::Editor;
 
 /// Default timeout duration (in seconds)
 pub const DEFAULT_TIMEOUT: u64 = 10;
@@ -39,16 +38,15 @@ macro_rules! subprocess_call {
 
 /// Shorthand for reading byte substrings from `Seek`-ables
 macro_rules! read_exact_at {
-    ( $file:expr, $bytes:expr, $offset:expr ) => {
-        {
-            // TODO: Find a way to silence `use_debug` complaints here rather than in every caller
-            let mut buf = [0; $bytes];
-            $file.seek($offset).chain_err(|| format!("Failed to seek to offset {:?}", $offset))?;
-            $file.read_exact(&mut buf)
-                 .chain_err(|| format!("Could not read {} bytes from {:?}", $bytes, $file))?;
-            buf
-        }
-    }
+    ( $file:expr, $bytes:expr, $offset:expr ) => {{
+        // TODO: Find a way to silence `use_debug` complaints here rather than in every caller
+        let mut buf = [0; $bytes];
+        $file.seek($offset).chain_err(|| format!("Failed to seek to offset {:?}", $offset))?;
+        $file
+            .read_exact(&mut buf)
+            .chain_err(|| format!("Could not read {} bytes from {:?}", $bytes, $file))?;
+        buf
+    }};
 }
 
 /// Interface for manipulating media devices such as DVD drives
@@ -88,30 +86,30 @@ pub trait NotificationProvider {
 }
 
 /// `MediaProvider` implementation which operates on (possibly GUI-less) Linux systems
-pub struct LinuxPlatformProvider<'a> {
+pub struct LinuxPlatformProvider<'devpath> {
     /// Device/file to operate on
     /// TODO: Consider storing a Path internally instead.
-    device: Cow<'a, OsStr>,
+    device: Cow<'devpath, OsStr>,
 }
 
-impl<'a> LinuxPlatformProvider<'a> {
+impl<'devpath> LinuxPlatformProvider<'devpath> {
     /// Create a `LinuxPlatformProvider` for a given device path
     /// TODO: Figure out how to not require the Cow to be manually supplied (eg. From)
     /// TODO: Ask whether I'm using the proper naming convention for this
-    pub fn new(device: Cow<OsStr>) -> LinuxPlatformProvider {
+    pub fn new(device: Cow<'_, OsStr>) -> LinuxPlatformProvider<'_> {
         // TODO: Validate this path
         LinuxPlatformProvider { device }
     }
 }
 
-impl<'a> RawMediaProvider for LinuxPlatformProvider<'a> {
+impl<'devpath> RawMediaProvider for LinuxPlatformProvider<'devpath> {
     // TODO: Actually think about this API and refactor.
     fn device_path(&self) -> OsString {
         self.device.clone().into_owned()
     }
 }
 
-impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
+impl<'devpath> MediaProvider for LinuxPlatformProvider<'devpath> {
     fn eject(&mut self) -> Result<()> {
         subprocess_call!("eject", &self.device)
             .chain_err(|| format!("Could not eject {}", &self.device.to_string_lossy()))
@@ -136,9 +134,12 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
 
         // Allow Linux a chance to read the name (eg. for post-ISO9660 stuff)
         if let Ok(label) = Command::new("blkid")
-                        .args(&["-s", "LABEL", "-o", "value"]).arg(&self.device).output()
-                        .map(|o| String::from_utf8_lossy(o.stdout.as_slice()).trim().to_owned()) {
-                        // XXX: Handle some types of blkid failure?
+            .args(&["-s", "LABEL", "-o", "value"])
+            .arg(&self.device)
+            .output()
+            .map(|o| String::from_utf8_lossy(o.stdout.as_slice()).trim().to_owned())
+        {
+            // XXX: Handle some types of blkid failure?
             if !label.is_empty() {
                 return Ok(label); // TODO: Is there a more idiomatic early return for Ok()?
             }
@@ -146,12 +147,13 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
 
         // Fall back to reading the raw ISO9660 header
         // TODO: Move this stuff into an IsoMediaProvider
-        let mut dev = File::open(&self.device).chain_err(
-            || format!("Could not open for reading: {}", self.device.to_string_lossy()))?;
+        let mut dev = File::open(&self.device).chain_err(|| {
+            format!("Could not open for reading: {}", self.device.to_string_lossy())
+        })?;
 
         // Safety check for non-ISO9660 filesystems
         // http://www.cnwrecovery.co.uk/html/iso9660_disks.html
-        #[cfg_attr(feature="cargo-clippy", allow(use_debug))]
+        #[allow(clippy::use_debug)]
         let cd_magic = read_exact_at!(dev, 2, SeekFrom::Start(32769));
         if &cd_magic != b"CD" {
             bail!("Unrecognized file format");
@@ -160,9 +162,13 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
         // http://www.commandlinefu.com/commands/view/12178
         // TODO: Find the spec to see if the split is really needed
         //       (My test discs were space-padded)
-        #[cfg_attr(feature="cargo-clippy", allow(use_debug))]
+        #[allow(clippy::use_debug)]
         Ok(String::from_utf8_lossy(&read_exact_at!(dev, 32, SeekFrom::Start(32808)))
-                  .split('\0').next().unwrap_or("").trim().to_owned())
+            .split('\0')
+            .next()
+            .unwrap_or("")
+            .trim()
+            .to_owned())
     }
 
     fn wait_for_ready(&self, timeout: &Duration) -> Result<()> {
@@ -178,13 +184,13 @@ impl<'a> MediaProvider for LinuxPlatformProvider<'a> {
                 break;
             }
 
-            sleep(Duration::new(1, 0))
+            sleep(Duration::new(1, 0));
         }
         bail!("Timed out")
     }
 }
 
-impl<'a> NotificationProvider for LinuxPlatformProvider<'a> {
+impl<'devpath> NotificationProvider for LinuxPlatformProvider<'devpath> {
     fn play_sound<P: AsRef<Path> + ?Sized>(&mut self, path: &P) -> Result<()> {
         subprocess_call!("play", "-V0", path.as_ref())
             .chain_err(|| format!("Could not play {}", path.as_ref().to_string_lossy()))
@@ -199,6 +205,7 @@ impl<'a> NotificationProvider for LinuxPlatformProvider<'a> {
 
 #[cfg(test)]
 mod tests {
+    use super::{LinuxPlatformProvider, MediaProvider, NotificationProvider, RawMediaProvider};
     use std::borrow::Cow;
     use std::env;
     use std::ffi::OsStr;
@@ -206,7 +213,6 @@ mod tests {
     use std::os::unix::ffi::OsStrExt; // TODO: Find a better way to produce invalid UTF-8
     use std::path::{Path, PathBuf};
     use std::time::{Duration, Instant};
-    use super::{LinuxPlatformProvider, MediaProvider, NotificationProvider, RawMediaProvider};
 
     /// Port of Python's naive `abspath` to be used as a prelude to `Path::display`
     ///
@@ -223,8 +229,11 @@ mod tests {
     /// Helper to deduplicate getting a platform provider pointed at the test fixture
     fn get_iso_provider<'a>() -> LinuxPlatformProvider<'a> {
         let path = Path::new("fixture.iso");
-        assert!(path.exists(), "Test fixture not found: {}",
-                abspath(path).expect("Tests should have permission to read $PWD").display());
+        assert!(
+            path.exists(),
+            "Test fixture not found: {}",
+            abspath(path).expect("Tests should have permission to read $PWD").display()
+        );
         return LinuxPlatformProvider::new(Cow::Borrowed(path.as_os_str()));
     }
 
@@ -305,14 +314,20 @@ mod tests {
     fn volume_label_bad_format() {
         test_label_failure("/dev/null");
         test_label_failure("/etc/passwd"); // "can't seek that far" code branch
-        test_label_failure("/bin/bash");   // "bad magic number" code branch
+        test_label_failure("/bin/bash"); // "bad magic number" code branch
     }
     #[test]
-    fn volume_label_not_a_file() { test_label_failure("/"); }
+    fn volume_label_not_a_file() {
+        test_label_failure("/");
+    }
     #[test]
-    fn volume_label_permission_denied() { test_label_failure("/etc/shadow"); }
+    fn volume_label_permission_denied() {
+        test_label_failure("/etc/shadow");
+    }
     #[test]
-    fn volume_label_nonexistant() { test_label_failure("/nonexist_path"); }
+    fn volume_label_nonexistant() {
+        test_label_failure("/nonexist_path");
+    }
 
     // -- Tests for LinuxPlatformProvider.wait_for_ready()
 

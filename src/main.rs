@@ -6,21 +6,17 @@ This file provided by [rust-cli-boilerplate](https://github.com/ssokolow/rust-cl
 
 // `error_chain` recursion adjustment
 #![recursion_limit = "1024"]
+//
 // Make rustc's built-in lints more strict and set clippy into a whitelist-based configuration so
 // we see new lints as they get written (We'll opt back out selectively)
-#![warn(
-    warnings,
-    rust_2018_idioms,
-    clippy::all,
-    clippy::complexity,
-    clippy::correctness,
-    clippy::pedantic,
-    clippy::perf,
-    clippy::style,
-    clippy::restriction
-)]
+#![warn(clippy::all, clippy::complexity, clippy::correctness, clippy::pedantic, clippy::perf)]
+#![warn(clippy::style, clippy::restriction)]
+//
 // Opt out of the lints I've seen and don't want
-#![allow(clippy::float_arithmetic)]
+#![allow(clippy::blanket_clippy_restriction_lints, clippy::pattern_type_mismatch)]
+#![allow(clippy::float_arithmetic, clippy::implicit_return, clippy::std_instead_of_core)]
+#![allow(clippy::std_instead_of_alloc, clippy::unseparated_literal_suffix)]
+#![allow(clippy::decimal_literal_representation, clippy::default_numeric_fallback)]
 
 // stdlib imports
 use std::io;
@@ -28,7 +24,7 @@ use std::io;
 // 3rd-party imports
 mod errors;
 use log::error;
-use structopt::{clap, StructOpt};
+use structopt::StructOpt;
 
 // Local imports
 mod app;
@@ -55,18 +51,19 @@ fn main() {
         .verbose
         .saturating_add(app::DEFAULT_VERBOSITY)
         .saturating_sub(opts.boilerplate.quiet);
+    #[allow(clippy::expect_used)]
     stderrlog::new()
         .module(module_path!())
         .quiet(verbosity == 0)
         .verbosity(verbosity.saturating_sub(1))
         .timestamp(opts.boilerplate.timestamp.unwrap_or(stderrlog::Timestamp::Off))
         .init()
-        .expect("initializing logging output");
+        .expect("initialize logging output");
 
     // If requested, generate shell completions and then exit with status of "success"
     if let Some(shell) = opts.boilerplate.dump_completions {
         app::CliOpts::clap().gen_completions_to(
-            app::CliOpts::clap().get_bin_name().unwrap_or_else(|| clap::crate_name!()),
+            app::CliOpts::clap().get_bin_name().unwrap_or(env!("CARGO_PKG_NAME")),
             shell,
             &mut io::stdout(),
         );
@@ -76,8 +73,8 @@ fn main() {
     if let Err(ref e) = app::main(opts) {
         // Write the top-level error message, then chained errors, then backtrace if available
         error!("error: {}", e);
-        for e in e.iter().skip(1) {
-            error!("caused by: {}", e);
+        for err in e.iter().skip(1) {
+            error!("caused by: {}", err);
         }
         if let Some(backtrace) = e.backtrace() {
             error!("backtrace: {:?}", backtrace);

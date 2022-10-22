@@ -30,7 +30,9 @@ __appname__ = "CD Ballooner"
 __version__ = "0.0pre0"
 __license__ = "GNU GPL 3.0 or later"
 
-import logging, multiprocessing, os, shlex, shutil, subprocess, tempfile
+import logging, multiprocessing, os, shlex, shutil, sys, tempfile
+import subprocess  # nosec
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from collections import OrderedDict
 log = logging.getLogger(__name__)
 
@@ -68,7 +70,7 @@ COMPRESSORS = OrderedDict([  # Sorted in priority order
     ('.lz', 'lzip -k'),
     ('.lzma', 'lzma -k'),
     ('.xz', 'xz -k'),
-    #('.Z', 'compress'),  # TODO: Needs to fake -k
+    # ('.Z', 'compress'),  # TODO: Needs to fake -k
 ])
 
 EXTENSION_COMPRESSION = {
@@ -76,8 +78,9 @@ EXTENSION_COMPRESSION = {
     '.tar.gz': '.tgz',
     '.tar.lz': '.tlz',
     '.tar.xz': '.txz',
-    #'.tar.Z': '.taZ',
+    # '.tar.Z': '.taZ',
 }
+
 
 def copy(src, dest):
     """Copy a file or directory without caring which the source is."""
@@ -86,12 +89,14 @@ def copy(src, dest):
     else:
         shutil.copy(src, dest)
 
+
 def escape_graft(path):
     """Escape an unescaped path for use with a -graft-points
 
     WARNING: Must be applied before adding the significant '='
     """
     return path.replace('\\', '\\\\').replace('=', '\\=')
+
 
 def parchive(src_path):
     """Generate a maximum-redundancy .par2 archive for the source path
@@ -104,16 +109,19 @@ def parchive(src_path):
         for parent, _, fnames in os.walk(src_path):
             files.extend(os.path.join(parent, fname) for fname in fnames)
         files = [os.path.relpath(path, par_dir) for path in files]
-        subprocess.check_call(PAR2_CMD + [src_path + '.par2'] + files,
+        subprocess.check_call(PAR2_CMD + [src_path + '.par2'] + files,  # nosec
                               cwd=par_dir)
     else:
-        subprocess.check_call(PAR2_CMD + [src_path + '.par2', src_name],
-                              cwd=par_dir)
+        subprocess.check_call(  # nosec
+            PAR2_CMD + [src_path + '.par2', src_name], cwd=par_dir)
 
 # TODO: Redesign this so it does format-by-format iteration so that, if there's
 # enough data to actually fill the disc with the help of this process, there
 # won't be an unequal distribution of redundancy.
+
+
 def process(inpath, outdir):
+    """Top-level entry point for per-command-line-argument operations"""
     outdir = os.path.abspath(outdir)
     outname = os.path.basename(inpath)
     outpath = os.path.join(outdir, outname)
@@ -131,25 +139,27 @@ def process(inpath, outdir):
 
         # TODO: Handle nonzero return codes and missing commands
         argv = shlex.split(archiver) + [archive_path, os.path.basename(inpath)]
-        subprocess.check_call(argv, cwd=outdir)
+        subprocess.check_call(argv, cwd=outdir)  # nosec
 
     for ext, compressor in COMPRESSORS.items():
         if os.path.isfile(outpath):
             log.info("Compressing %r with %r", inpath, compressor)
             argv = shlex.split(compressor) + [outpath]
-            subprocess.check_call(argv, cwd=outdir)
+            subprocess.check_call(argv, cwd=outdir)  # nosec
 
         out_tar = outname + '.tar'
         log.info("Compressing %r with %r", out_tar, compressor)
         argv = shlex.split(compressor) + [out_tar]
-        subprocess.check_call(argv, cwd=outdir)
+        subprocess.check_call(argv, cwd=outdir)  # nosec
 
     for ext_from, ext_to in EXTENSION_COMPRESSION.items():
         src = outpath + ext_from
         dest = outpath + ext_to
         os.rename(src, dest)
 
+
 def generate_iso(src_dir, outpath, volume_id):
+    """Generate a DVDisaster-augmented ISO from the given folder"""
     src_dir = os.path.abspath(src_dir)
 
     grafts_seen, grafts = [], []
@@ -157,28 +167,28 @@ def generate_iso(src_dir, outpath, volume_id):
         name = escape_graft(fname)
         path = escape_graft(os.path.join(src_dir, fname))
 
-        assert name not in grafts_seen, "Naming collision: {}".format(name)
+        if name in grafts_seen:
+            raise AssertionError("Naming collision: {}".format(name))
         grafts_seen.append(name)
         grafts.append(name + '=' + path)
 
-    subprocess.check_call(['genisoimage'] + GENISOFS_OPTS +
+    subprocess.check_call(['genisoimage'] + GENISOFS_OPTS +  # noqa # nosec
         ['-volid', volume_id, '-o', outpath, '-graft-points'] + grafts)
 
     cores = multiprocessing.cpu_count()
-    subprocess.check_call(['dvdisaster', '-c', '-x', str(cores),
+    subprocess.check_call(['dvdisaster', '-c', '-x', str(cores),  # nosec
         '-mRS02', '-n', 'CD', '-i', outpath])
+
 
 def main():
     """The main entry point, compatible with setuptools entry points."""
     # If we're running on Python 2, take responsibility for preventing
     # output from causing UnicodeEncodeErrors. (Done here so it should only
     # happen when not being imported by some other program.)
-    import sys
     if sys.version_info.major < 3:
-        reload(sys)
+        reload(sys)  # noqa # pylint: disable=undefined-variable
         sys.setdefaultencoding('utf-8')  # pylint: disable=no-member
 
-    from argparse import ArgumentParser, RawDescriptionHelpFormatter
     parser = ArgumentParser(formatter_class=RawDescriptionHelpFormatter,
             description=__doc__.replace('\r\n', '\n').split('\n--snip--\n')[0])
     parser.add_argument('--version', action='version',
@@ -239,6 +249,7 @@ def main():
     #       it can be recovered by using a ddrescue log and some custom
     #       scripting to merge the recovered bytes from the multiple copies of
     #       the ECC-padded ISO that got burned to the disc.
+
 
 if __name__ == '__main__':
     main()
