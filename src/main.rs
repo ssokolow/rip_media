@@ -21,12 +21,9 @@ This file provided by [rust-cli-boilerplate](https://github.com/ssokolow/rust-cl
 // Enforce my policy of only allowing it in my own code as a last resort
 #![forbid(unsafe_code)]
 
-// stdlib imports
-use std::io;
-
 // 3rd-party imports
+use clap::Parser;
 use log::error;
-use structopt::StructOpt;
 
 // Local imports
 mod app;
@@ -39,7 +36,7 @@ mod validators;
 /// See `app::main` for the application-specific logic.
 fn main() {
     // Parse command-line arguments (exiting on parse error, --version, or --help)
-    let opts = app::CliOpts::from_args();
+    let opts = app::CliOpts::parse();
 
     // Configure logging output so that -q is "decrease verbosity" rather than instant silence
     let verbosity = opts
@@ -55,16 +52,6 @@ fn main() {
         .timestamp(opts.boilerplate.timestamp.unwrap_or(stderrlog::Timestamp::Off))
         .init()
         .expect("initialize logging output");
-
-    // If requested, generate shell completions and then exit with status of "success"
-    if let Some(shell) = opts.boilerplate.dump_completions {
-        app::CliOpts::clap().gen_completions_to(
-            app::CliOpts::clap().get_bin_name().unwrap_or(env!("CARGO_PKG_NAME")),
-            shell,
-            &mut io::stdout(),
-        );
-        std::process::exit(0);
-    };
 
     if let Err(ref e) = app::main(opts) {
         // Write the top-level error message, then chained errors, then backtrace if available

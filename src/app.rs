@@ -7,7 +7,7 @@ use std::path::{Component::CurDir, PathBuf};
 
 // 3rd-party crate imports
 use anyhow::Result;
-use structopt::{clap, StructOpt};
+use clap::Parser;
 
 // Local Imports
 use crate::validators::{dir_writable, filename_valid_portable, path_readable};
@@ -43,63 +43,58 @@ USAGE:
 
 /// Options used by boilerplate code
 // TODO: Move these into a struct of their own in something like helpers.rs
-#[derive(StructOpt, Debug)]
-#[structopt(rename_all = "kebab-case")]
+#[derive(Parser, Debug)]
+#[clap(rename_all = "kebab-case")]
 pub struct BoilerplateOpts {
     // -- Arguments used by main.rs --
     // TODO: Move these into a struct of their own in something like helpers.rs
     /// Decrease verbosity (-q, -qq, -qqq, etc.)
-    #[structopt(short, long, parse(from_occurrences))]
+    #[clap(short, long, parse(from_occurrences))]
     pub quiet: usize,
 
     /// Increase verbosity (-v, -vv, -vvv, etc.)
-    #[structopt(short, long, parse(from_occurrences))]
+    #[clap(short, long, parse(from_occurrences))]
     pub verbose: usize,
 
     /// Display timestamps on log messages (sec, ms, ns, none)
-    #[structopt(short, long, value_name = "resolution")]
+    #[clap(short, long, value_name = "resolution")]
     pub timestamp: Option<stderrlog::Timestamp>,
-
-    /// Write a completion definition for the specified shell to stdout (bash, zsh, etc.)
-    #[structopt(long, value_name = "shell")]
-    pub dump_completions: Option<clap::Shell>,
 }
 
 /// Command-line argument schema
 // NOTE: long_about must begin with '\n' for compatibility with help2man
 // FIXME: clap-rs issue #694
-#[derive(StructOpt, Debug)]
-#[structopt(
+#[derive(Parser, Debug)]
+#[clap(
+    version,
     template = HELP_TEMPLATE,
     rename_all = "kebab-case",
     about = "\nSimple frontend for backing up physical media",
-    global_setting = structopt::clap::AppSettings::ColoredHelp,
-    setting = structopt::clap::AppSettings::GlobalVersion,
-    setting = structopt::clap::AppSettings::SubcommandRequiredElseHelp
+    setting = clap::AppSettings::GlobalVersion,
+    setting = clap::AppSettings::SubcommandRequiredElseHelp
 )]
 pub struct CliOpts {
-    #[allow(clippy::missing_docs_in_private_items)] // StructOpt won't let us document this
-    #[structopt(flatten)]
+    #[allow(clippy::missing_docs_in_private_items)] // clap won't let us document this
+    #[clap(flatten)]
     pub boilerplate: BoilerplateOpts,
 
     // -- Common Arguments --
     // TODO: Test (using something like `assert_cmd`) that inpath is required
     /// Path to source medium (device, image file, etc.)
-    #[structopt(
+    #[clap(
         short,
         long,
-        parse(from_os_str),
         global = true,
         empty_values = false,
         value_name = "PATH",
         required = false,
-        validator_os = path_readable,
+        value_parser,
         default_value = DEFAULT_INPATH
     )]
     inpath: PathBuf,
 
     /// Path to parent directory for output file(s)
-    #[structopt(
+    #[clap(
         short,
         long,
         parse(from_os_str),
@@ -107,85 +102,72 @@ pub struct CliOpts {
         empty_values = false,
         value_name = "PATH",
         required = false,
-        validator_os = dir_writable,
         default_value_os = CurDir.as_os_str()
     )]
     outdir: PathBuf,
 
     /// Specify the output file/folder name [default: <the volume label>]
-    #[structopt(
-        long,
-        global = true,
-        empty_values = false,
-        value_name = "NAME",
-        validator_os = filename_valid_portable
-    )]
+    #[clap(long, global = true, empty_values = false, value_name = "NAME")]
     name: Option<String>, // TODO: Decide how to combine this default with --set-size
 
     /// Number of discs/cartridges/etc. to process under the same name
     /// (eg. multi-disc games/albums)
-    #[structopt(
-        long,
-        global = true,
-        empty_values = false,
-        value_name = "NUM",
-        validator = valid_set_size,
-        default_value = "1"
-    )]
-    set_size: usize,
+    #[clap(long, global = true, empty_values = false, value_name = "NUM", default_value = "1",
+        value_parser = clap::value_parser!(u16).range(1..))]
+    set_size: u16,
 
     /// Which subcommand to invoke
-    #[structopt(subcommand)]
+    #[clap(subcommand)]
     cmd: Command,
 }
 
 /// Valid subcommands
 #[allow(clippy::upper_case_acronyms)]
-#[derive(StructOpt, Debug)]
-#[structopt(
+#[derive(Parser, Debug)]
+#[clap(
     rename_all = "kebab-case",
     about = "\nSimple frontend for backing up physical media",
     template = HELP_TEMPLATE)]
 pub enum Command {
     /// Rip an audio CD
-    #[structopt(display_order = 1, template = HELP_TEMPLATE)]
+    #[clap(display_order = 1, template = HELP_TEMPLATE)]
     Audio,
 
     /// Rip a PC CD-ROM
-    #[structopt(display_order = 1, template = HELP_TEMPLATE)]
+    #[clap(display_order = 1, template = HELP_TEMPLATE)]
     CD,
 
     /// Rip a PC DVD-ROM
-    #[structopt(display_order = 1, template = HELP_TEMPLATE)]
+    #[clap(display_order = 1, template = HELP_TEMPLATE)]
     DVD,
 
     /// Rip a Sony PlayStation (PSX) disc in a PCSX/mednafen-compatible format
-    #[structopt(display_order = 1, template = HELP_TEMPLATE)]
+    #[clap(display_order = 1, template = HELP_TEMPLATE)]
     PSX,
 
     /// Rip a Sony PlayStation 2 disc into a PCSX2-compatible format
-    #[structopt(display_order = 1, template = HELP_TEMPLATE)]
+    #[clap(display_order = 1, template = HELP_TEMPLATE)]
     PS2,
 
     /// Rip a cartridge connected to the PC via a Retrode
-    #[structopt(display_order = 2, template = HELP_TEMPLATE)]
+    #[clap(display_order = 2, template = HELP_TEMPLATE)]
     Retrode,
 
     /// Rip a UMD via a USB-connected PSP running custom firmware
-    #[structopt(display_order = 2, template = HELP_TEMPLATE)]
+    #[clap(display_order = 2, template = HELP_TEMPLATE)]
     UMD,
 
     /// Validate and process a disc image dumped by a Wii running CleanRip
-    #[structopt(display_order = 2, template = HELP_TEMPLATE)]
+    #[clap(display_order = 2, template = HELP_TEMPLATE)]
     Cleanrip {
         // TODO: Can I make this an --in-place option shared among subcommands?
         /// Only run the hash-validation without processing further
-        #[structopt(long)]
+        #[clap(long)]
         just_validate: bool,
     },
 
     /// Recover a damaged CD
-    #[structopt(display_order = 1, template = HELP_TEMPLATE)]
+    #[clap(display_order = 1, template = HELP_TEMPLATE)]
     Damaged,
 }
 
@@ -219,20 +201,6 @@ pub fn main(opts: CliOpts) -> Result<()> {
     subcommands::rip(&mut provider, subcommand_func, opts.name.as_ref().map(String::as_ref))?;
 
     Ok(()) // TODO
-}
-
-/// TODO: Find a way to make *clap* mention which argument failed validation
-///       so my validator can be generic (A closure, maybe?)
-#[allow(clippy::needless_pass_by_value)]
-pub fn valid_set_size(value: String) -> std::result::Result<(), String> {
-    // I can't imagine needing more than u8... no harm in being flexible here
-    if let Ok(num) = value.parse::<u32>() {
-        if num >= 1u32 {
-            return Ok(());
-        }
-        return Err(format!("Set size must be 1 or greater (not \"{}\")", value));
-    }
-    Err(format!("Set size must be an integer (whole number), not \"{}\"", value))
 }
 
 // Tests go below the code where they'll be out of the way when not the target of attention
@@ -313,35 +281,6 @@ mod tests {
     //}
 
     // TODO: More unit tests
-
-    #[test]
-    fn valid_set_size_requires_positive_base_10_numbers() {
-        assert!(valid_set_size("".into()).is_err());
-        assert!(valid_set_size("one".into()).is_err());
-        assert!(valid_set_size("a".into()).is_err()); // not base 11 or above
-        assert!(valid_set_size("0".into()).is_err());
-        assert!(valid_set_size("-1".into()).is_err());
-    }
-
-    #[test]
-    fn valid_set_size_requires_integers() {
-        assert!(valid_set_size("-1.5".into()).is_err());
-        assert!(valid_set_size("-0.5".into()).is_err());
-        assert!(valid_set_size("0.5".into()).is_err());
-        assert!(valid_set_size("1.5".into()).is_err());
-    }
-
-    #[test]
-    fn valid_set_size_handles_out_of_range_sanely() {
-        assert!(valid_set_size("5000000000".into()).is_err());
-    }
-
-    #[test]
-    fn valid_set_size_basic_functionality() {
-        assert!(valid_set_size("1".into()).is_ok());
-        assert!(valid_set_size("9".into()).is_ok()); // not base 9 or below
-        assert!(valid_set_size("5000".into()).is_ok()); // accept reasonably large numbers
-    }
 }
 
 // vim: set sw=4 sts=4 :
