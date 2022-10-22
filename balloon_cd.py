@@ -204,6 +204,8 @@ def main():
         "the first 32 characters of the first file's name)")
     parser.add_argument('-o', '--outpath', default='./output.iso',
         help="Name of the ISO to generate. (default: %(default)s)")
+    parser.add_argument('--no-par2', action="store_true",
+        default=False, help="Don't generate .par2 files")
     # Reminder: %(default)s can be used in help strings.
 
     args = parser.parse_args()
@@ -233,7 +235,8 @@ def main():
                 log.debug("Not generating .par2.par2: %r", temp_path)
             else:
                 log.info("Applying par2 to %r", temp_path)
-                parchive(temp_path)
+                if not args.no_par2:
+                    parchive(temp_path)
 
         volume_id = args.volid
         if not volume_id:
