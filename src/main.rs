@@ -17,6 +17,9 @@ This file provided by [rust-cli-boilerplate](https://github.com/ssokolow/rust-cl
 #![allow(clippy::float_arithmetic, clippy::implicit_return, clippy::std_instead_of_core)]
 #![allow(clippy::std_instead_of_alloc, clippy::unseparated_literal_suffix)]
 #![allow(clippy::decimal_literal_representation, clippy::default_numeric_fallback)]
+//
+// Enforce my policy of only allowing it in my own code as a last resort
+#![forbid(unsafe_code)]
 
 // stdlib imports
 use std::io;

@@ -5,12 +5,12 @@ authors = ["Stephan Sokolow <http://www.ssokolow.com/ContactMe>"]
 edition = "2018"
 
 [dependencies]
+faccess = "0.2.4"
+glob = "0.2.11"
 log = "0.4"
+rustyline = "1"
 stderrlog = "0.4"
 structopt = "0.2"
-libc = "0.2"
-glob = "0.2.11"
-rustyline = "1"
 
 [dependencies.error-chain]
 version = "0.12"

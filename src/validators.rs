@@ -5,6 +5,8 @@ use std::ffi::OsString;
 use std::fs::File;
 use std::path::{Component, Path};
 
+use faccess::PathExt;
+
 /// Special filenames which cannot be used for real files under Win32
 ///
 /// (Unless your app uses the `\\?\` path prefix to bypass legacy Win32 API compatibility
@@ -22,70 +24,6 @@ const RESERVED_DOS_FILENAMES: &[&str] = &[
    // TODO: Add the rest of the disallowed names from
    // https://en.wikipedia.org/wiki/Filename#Comparison_of_filename_limitations
 
-/// Module to contain the unsafety of an `unsafe` call to `access()`
-mod access {
-    /// TODO: Make this wrapper portable
-    ///       <https://doc.rust-lang.org/book/conditional-compilation.html>
-    /// TODO: Consider making `wrapped_access` typesafe using the `bitflags`
-    ///       crate `clap` pulled in
-    use libc::{access, c_int, W_OK};
-    use std::ffi::CString;
-    use std::os::unix::ffi::OsStrExt;
-    use std::path::Path;
-
-    /// Lower-level safety wrapper shared by all probably_* functions I define
-    /// TODO: Unit test **HEAVILY** (Has unsafe block. Here be dragons!)
-    fn wrapped_access(abs_path: &Path, mode: c_int) -> bool {
-        // Debug-time check that we're using the API properly
-        // (Debug-only because relying on it in a release build grants a false
-        // sense of security and, besides, access() is only really safe to use
-        // as a way to abort early for convenience on errors that would still
-        // be safe anyway.)
-        assert!(abs_path.is_absolute());
-
-        // Make a null-terminated copy of the path for libc
-        match CString::new(abs_path.as_os_str().as_bytes()) {
-            // If we succeed, call access(2), convert the result into bool, and return it
-            Ok(cstr) => unsafe { access(cstr.as_ptr(), mode) == 0 },
-            // If we fail, return false because it can't be an access()ible path
-            Err(_) => false,
-        }
-    }
-
-    /// API suitable for a lightweight "fail early" check for whether a target
-    /// directory is writable without worry that a fancy filesystem may be
-    /// configured to allow write but deny deletion for the resulting test file.
-    /// (It's been seen in the wild)
-    ///
-    /// Uses a name which helps to drive home the security hazard in access()
-    /// abuse and hide the mode flag behind an abstraction so the user can't
-    /// mess up unsafe{} (eg. On my system, "/" erroneously returns success)
-    pub fn probably_writable<P: AsRef<Path> + ?Sized>(path: &P) -> bool {
-        wrapped_access(path.as_ref(), W_OK)
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use super::probably_writable;
-        use std::ffi::OsStr;
-        use std::os::unix::ffi::OsStrExt; // TODO: Find a better way to produce invalid UTF-8
-
-        #[test]
-        fn probably_writable_basic_functionality() {
-            assert!(probably_writable(OsStr::new("/tmp"))); // OK Folder
-            assert!(probably_writable(OsStr::new("/dev/null"))); // OK File
-            assert!(!probably_writable(OsStr::new("/etc/shadow"))); // Denied File
-            assert!(!probably_writable(OsStr::new("/etc/ssl/private"))); // Denied Folder
-            assert!(!probably_writable(OsStr::new("/nonexistant_test_path"))); // Missing Path
-            assert!(!probably_writable(OsStr::new("/tmp\0with\0null"))); // Bad CString
-            assert!(!probably_writable(OsStr::from_bytes(b"/not\xffutf8"))); // Bad UTF-8
-            assert!(!probably_writable(OsStr::new("/"))); // Root
-                                                          // TODO: Relative path
-                                                          // TODO: Non-UTF8 path that actually does exist and is writable
-        }
-    }
-}
-
 /// Test that the given path **should** be writable
 #[allow(dead_code)] // TEMPLATE:REMOVE
 pub fn path_output_dir<P: AsRef<Path> + ?Sized>(value: &P) -> Result<(), OsString> {
@@ -99,10 +37,8 @@ pub fn path_output_dir<P: AsRef<Path> + ?Sized>(value: &P) -> Result<(), OsStrin
 
     // TODO: Think about how to code this more elegantly (try! perhaps?)
     if let Ok(abs_pathbuf) = path.canonicalize() {
-        if let Some(abs_path) = abs_pathbuf.to_str() {
-            if self::access::probably_writable(abs_path) {
-                return Ok(());
-            }
+        if abs_pathbuf.writable() {
+            return Ok(());
         }
     }
 
@@ -159,10 +95,8 @@ pub fn dir_writable<P: AsRef<Path> + ?Sized>(value: &P) -> std::result::Result<(
 
     // TODO: Think about how to code this more elegantly (try! perhaps?)
     if let Ok(abs_pathbuf) = path.canonicalize() {
-        if let Some(abs_path) = abs_pathbuf.to_str() {
-            if self::access::probably_writable(abs_path) {
-                return Ok(());
-            }
+        if abs_pathbuf.writable() {
+            return Ok(());
         }
     }
 
