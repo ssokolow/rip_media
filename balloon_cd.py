@@ -28,7 +28,7 @@ from __future__ import (absolute_import, division, print_function,
 __author__ = "Stephan Sokolow (deitarion/SSokolow)"
 __appname__ = "CD Ballooner"
 __version__ = "0.0pre0"
-__license__ = "GNU GPL 3.0 or later"
+__license__ = "MIT OR Apache-2.0"
 
 import logging, multiprocessing, os, shlex, shutil, sys, tempfile
 import subprocess  # nosec
