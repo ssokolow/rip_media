@@ -2,7 +2,7 @@
 name = "rip_media"
 version = "0.1.0"
 authors = ["Stephan Sokolow <http://www.ssokolow.com/ContactMe>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 anyhow = "1.0.66"
