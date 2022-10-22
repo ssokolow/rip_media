@@ -75,7 +75,7 @@ pub struct BoilerplateOpts {
 #[structopt(
     raw(template = "HELP_TEMPLATE"),
     rename_all = "kebab-case",
-    long_about = "\nSimple frontend for backing up physical media",
+    about = "\nSimple frontend for backing up physical media",
     raw(
         global_setting = "structopt::clap::AppSettings::ColoredHelp",
         setting = "structopt::clap::AppSettings::GlobalVersion",
