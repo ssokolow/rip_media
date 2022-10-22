@@ -1,3 +1,9 @@
+**WARNING:** This is my _very first_ Rust codebase and sat mouldering since 2016,
+modulo some superficial clean-ups and migrations like error-chain to anyhow.
+It was never fully completed and is _badly_ in need of refactoring.
+
+---
+
 The beginnings of a wrapper for automating all of the steps I go through to make
 verified,
 [FEC](https://en.wikipedia.org/wiki/Forward_error_correction)-augmented backups
