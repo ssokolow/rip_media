@@ -115,7 +115,7 @@ pub fn rip_audio<P: RawMediaProvider>(provider: &mut P, _: &str) -> Result<()> {
 
     // TODO: HumanSort before operating on them
     #[allow(clippy::expect_used)]
-    for wav_result in glob_with("*.wav", &options).expect("hard-coded pattern is valid") {
+    for wav_result in glob_with("*.wav", options).expect("hard-coded pattern is valid") {
         match wav_result.chain_err(|| "Could not glob path") {
             Err(e) => return Err(e),
             Ok(path) => {

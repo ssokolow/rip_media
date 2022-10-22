@@ -197,9 +197,12 @@ impl<'devpath> NotificationProvider for LinuxPlatformProvider<'devpath> {
     }
 
     fn read_line(&self, prompt: &str) -> Result<String> {
-        let mut rl = Editor::<()>::new();
-        rl.readline(prompt)
-            .chain_err(|| format!("Failed to request information from user with: {}", prompt))
+        match Editor::<()>::new() {
+            Ok(mut rline) => rline
+                .readline(prompt)
+                .chain_err(|| format!("Failed to request information from user with: {}", prompt)),
+            Err(_) => bail!("Failed to initialize rustyline editor"),
+        }
     }
 }
 

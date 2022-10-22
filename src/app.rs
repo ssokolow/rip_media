@@ -73,14 +73,12 @@ pub struct BoilerplateOpts {
 // FIXME: clap-rs issue #694
 #[derive(StructOpt, Debug)]
 #[structopt(
-    raw(template = "HELP_TEMPLATE"),
+    template = HELP_TEMPLATE,
     rename_all = "kebab-case",
     about = "\nSimple frontend for backing up physical media",
-    raw(
-        global_setting = "structopt::clap::AppSettings::ColoredHelp",
-        setting = "structopt::clap::AppSettings::GlobalVersion",
-        setting = "structopt::clap::AppSettings::SubcommandRequiredElseHelp"
-    )
+    global_setting = structopt::clap::AppSettings::ColoredHelp,
+    setting = structopt::clap::AppSettings::GlobalVersion,
+    setting = structopt::clap::AppSettings::SubcommandRequiredElseHelp
 )]
 pub struct CliOpts {
     #[allow(clippy::missing_docs_in_private_items)] // StructOpt won't let us document this
@@ -98,7 +96,8 @@ pub struct CliOpts {
         empty_values = false,
         value_name = "PATH",
         required = false,
-        raw(validator_os = "path_readable", default_value = "DEFAULT_INPATH")
+        validator_os = path_readable,
+        default_value = DEFAULT_INPATH
     )]
     inpath: PathBuf,
 
@@ -111,7 +110,8 @@ pub struct CliOpts {
         empty_values = false,
         value_name = "PATH",
         required = false,
-        raw(validator_os = "dir_writable", default_value_os = "CurDir.as_os_str()")
+        validator_os = dir_writable,
+        default_value_os = CurDir.as_os_str()
     )]
     outdir: PathBuf,
 
@@ -121,7 +121,7 @@ pub struct CliOpts {
         global = true,
         empty_values = false,
         value_name = "NAME",
-        raw(validator_os = "filename_valid_portable")
+        validator_os = filename_valid_portable
     )]
     name: Option<String>, // TODO: Decide how to combine this default with --set-size
 
@@ -132,7 +132,7 @@ pub struct CliOpts {
         global = true,
         empty_values = false,
         value_name = "NUM",
-        raw(validator = "valid_set_size"),
+        validator = valid_set_size,
         default_value = "1"
     )]
     set_size: usize,
@@ -145,38 +145,38 @@ pub struct CliOpts {
 /// Valid subcommands
 #[allow(clippy::upper_case_acronyms)]
 #[derive(StructOpt, Debug)]
-#[structopt(rename_all = "kebab-case", raw(template = "HELP_TEMPLATE"))]
+#[structopt(rename_all = "kebab-case", template = HELP_TEMPLATE)]
 pub enum Command {
     /// Rip an audio CD
-    #[structopt(display_order = 1, raw(template = "HELP_TEMPLATE"))]
+    #[structopt(display_order = 1, template = HELP_TEMPLATE)]
     Audio,
 
     /// Rip a PC CD-ROM
-    #[structopt(display_order = 1, raw(template = "HELP_TEMPLATE"))]
+    #[structopt(display_order = 1, template = HELP_TEMPLATE)]
     CD,
 
     /// Rip a PC DVD-ROM
-    #[structopt(display_order = 1, raw(template = "HELP_TEMPLATE"))]
+    #[structopt(display_order = 1, template = HELP_TEMPLATE)]
     DVD,
 
     /// Rip a Sony PlayStation (PSX) disc in a PCSX/mednafen-compatible format
-    #[structopt(display_order = 1, raw(template = "HELP_TEMPLATE"))]
+    #[structopt(display_order = 1, template = HELP_TEMPLATE)]
     PSX,
 
     /// Rip a Sony PlayStation 2 disc into a PCSX2-compatible format
-    #[structopt(display_order = 1, raw(template = "HELP_TEMPLATE"))]
+    #[structopt(display_order = 1, template = HELP_TEMPLATE)]
     PS2,
 
     /// Rip a cartridge connected to the PC via a Retrode
-    #[structopt(display_order = 2, raw(template = "HELP_TEMPLATE"))]
+    #[structopt(display_order = 2, template = HELP_TEMPLATE)]
     Retrode,
 
     /// Rip a UMD via a USB-connected PSP running custom firmware
-    #[structopt(display_order = 2, raw(template = "HELP_TEMPLATE"))]
+    #[structopt(display_order = 2, template = HELP_TEMPLATE)]
     UMD,
 
     /// Validate and process a disc image dumped by a Wii running CleanRip
-    #[structopt(display_order = 2, raw(template = "HELP_TEMPLATE"))]
+    #[structopt(display_order = 2, template = HELP_TEMPLATE)]
     Cleanrip {
         // TODO: Can I make this an --in-place option shared among subcommands?
         /// Only run the hash-validation without processing further
@@ -185,7 +185,7 @@ pub enum Command {
     },
 
     /// Recover a damaged CD
-    #[structopt(display_order = 1, raw(template = "HELP_TEMPLATE"))]
+    #[structopt(display_order = 1, template = HELP_TEMPLATE)]
     Damaged,
 }
 
