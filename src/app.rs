@@ -142,7 +142,10 @@ pub struct CliOpts {
 /// Valid subcommands
 #[allow(clippy::upper_case_acronyms)]
 #[derive(StructOpt, Debug)]
-#[structopt(rename_all = "kebab-case", template = HELP_TEMPLATE)]
+#[structopt(
+    rename_all = "kebab-case",
+    about = "\nSimple frontend for backing up physical media",
+    template = HELP_TEMPLATE)]
 pub enum Command {
     /// Rip an audio CD
     #[structopt(display_order = 1, template = HELP_TEMPLATE)]
