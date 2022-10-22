@@ -5,6 +5,7 @@ authors = ["Stephan Sokolow <http://www.ssokolow.com/ContactMe>"]
 edition = "2018"
 
 [dependencies]
+anyhow = "1.0.66"
 faccess = "0.2.4"
 glob = "0.3.0"
 log = "0.4.17"
@@ -12,14 +13,12 @@ rustyline = "10.0.0"
 stderrlog = "0.5.3"
 structopt = "0.3.26"
 
-[dependencies.error-chain]
-version = "0.12.4"
-default-features = false  # disable pulling in backtrace
-
 [profile.release]
 lto = true
 codegen-units = 1
 opt-level = "z"
+
+[features]
 
 # Uncomment to sacrifice Drop-on-panic cleanup for 20K space saving
 #panic = 'abort'

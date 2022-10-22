@@ -1,8 +1,5 @@
 //! Abstraction around the underlying OS functionality
 
-use crate::errors::{Result, ResultExt};
-use error_chain::bail;
-
 use std::borrow::Cow;
 use std::ffi::{OsStr, OsString};
 use std::fs::File;
@@ -12,6 +9,7 @@ use std::process::Command;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
+use anyhow::{bail, Context, Result};
 use rustyline::Editor;
 
 /// Default timeout duration (in seconds)
@@ -41,10 +39,10 @@ macro_rules! read_exact_at {
     ( $file:expr, $bytes:expr, $offset:expr ) => {{
         // TODO: Find a way to silence `use_debug` complaints here rather than in every caller
         let mut buf = [0; $bytes];
-        $file.seek($offset).chain_err(|| format!("Failed to seek to offset {:?}", $offset))?;
+        $file.seek($offset).with_context(|| format!("Failed to seek to offset {:?}", $offset))?;
         $file
             .read_exact(&mut buf)
-            .chain_err(|| format!("Could not read {} bytes from {:?}", $bytes, $file))?;
+            .with_context(|| format!("Could not read {} bytes from {:?}", $bytes, $file))?;
         buf
     }};
 }
@@ -112,17 +110,17 @@ impl<'devpath> RawMediaProvider for LinuxPlatformProvider<'devpath> {
 impl<'devpath> MediaProvider for LinuxPlatformProvider<'devpath> {
     fn eject(&mut self) -> Result<()> {
         subprocess_call!("eject", &self.device)
-            .chain_err(|| format!("Could not eject {}", &self.device.to_string_lossy()))
+            .with_context(|| format!("Could not eject {}", &self.device.to_string_lossy()))
     }
 
     fn load(&mut self) -> Result<()> {
         subprocess_call!("eject", "-t", &self.device)
-            .chain_err(|| format!("Could not load media for {}", &self.device.to_string_lossy()))
+            .with_context(|| format!("Could not load media for {}", &self.device.to_string_lossy()))
     }
 
     fn unmount(&mut self) -> Result<()> {
         subprocess_call!("umount", &self.device)
-            .chain_err(|| format!("Could not unmount {}", &self.device.to_string_lossy()))
+            .with_context(|| format!("Could not unmount {}", &self.device.to_string_lossy()))
     }
 
     fn volume_label(&self) -> Result<String> {
@@ -147,7 +145,7 @@ impl<'devpath> MediaProvider for LinuxPlatformProvider<'devpath> {
 
         // Fall back to reading the raw ISO9660 header
         // TODO: Move this stuff into an IsoMediaProvider
-        let mut dev = File::open(&self.device).chain_err(|| {
+        let mut dev = File::open(&self.device).with_context(|| {
             format!("Could not open for reading: {}", self.device.to_string_lossy())
         })?;
 
@@ -193,16 +191,14 @@ impl<'devpath> MediaProvider for LinuxPlatformProvider<'devpath> {
 impl<'devpath> NotificationProvider for LinuxPlatformProvider<'devpath> {
     fn play_sound<P: AsRef<Path> + ?Sized>(&mut self, path: &P) -> Result<()> {
         subprocess_call!("play", "-V0", path.as_ref())
-            .chain_err(|| format!("Could not play {}", path.as_ref().to_string_lossy()))
+            .with_context(|| format!("Could not play {}", path.as_ref().to_string_lossy()))
     }
 
     fn read_line(&self, prompt: &str) -> Result<String> {
-        match Editor::<()>::new() {
-            Ok(mut rline) => rline
-                .readline(prompt)
-                .chain_err(|| format!("Failed to request information from user with: {}", prompt)),
-            Err(_) => bail!("Failed to initialize rustyline editor"),
-        }
+        Editor::<()>::new()
+            .context("Failed to initialize rustyline editor")?
+            .readline(prompt)
+            .with_context(|| format!("Failed to request information from user with: {}", prompt))
     }
 }
 
@@ -312,7 +308,6 @@ mod tests {
         assert_eq!(get_iso_provider().volume_label().expect("fixture.iso has label"), "CDROM");
     }
 
-    // TODO: Familiarize myself with error-chain enough to return ErrorKinds and test them here
     #[test]
     fn volume_label_bad_format() {
         test_label_failure("/dev/null");

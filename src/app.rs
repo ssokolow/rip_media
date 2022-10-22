@@ -6,13 +6,10 @@ use std::borrow::Cow;
 use std::path::{Component::CurDir, PathBuf};
 
 // 3rd-party crate imports
+use anyhow::Result;
 use structopt::{clap, StructOpt};
 
-#[allow(unused_imports)] // TEMPLATE:REMOVE
-use log::{debug, error, info, trace, warn};
-
 // Local Imports
-use crate::errors::Result;
 use crate::validators::{dir_writable, filename_valid_portable, path_readable};
 use crate::{platform, subcommands};
 

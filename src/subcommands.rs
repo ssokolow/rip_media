@@ -7,9 +7,9 @@ use std::process::{Command, Stdio};
 use std::thread::sleep;
 use std::time::Duration;
 
+use anyhow::{Context, Result};
 use glob::{glob_with, MatchOptions};
 
-use crate::errors::{Result, ResultExt};
 use crate::platform::{MediaProvider, NotificationProvider, RawMediaProvider, DEFAULT_TIMEOUT};
 
 use crate::subprocess_call;
@@ -48,20 +48,22 @@ pub fn rip_bin<P: RawMediaProvider>(
         volbase.with_extension("bin"),
         &tocfile
     )
-    .chain_err(|| "Error while dumping BIN/TOC pair")?;
+    .with_context(|| "Error while dumping BIN/TOC pair")?;
 
     // Generate a .CUE file
     // TODO: Find a way to detect if an ISO would be equivalent
     // TODO: Detect if there are audio tracks and, if so, byte-swap
-    Command::new("toc2cue").args(&[&tocfile, &cuefile]).stdout(Stdio::null()).status().chain_err(
-        || {
+    Command::new("toc2cue")
+        .args(&[&tocfile, &cuefile])
+        .stdout(Stdio::null())
+        .status()
+        .with_context(|| {
             format!(
                 "Could not generate {} file from {}",
                 cuefile.to_string_lossy(),
                 tocfile.to_string_lossy()
             )
-        },
-    )?;
+        })?;
 
     // XXX: Properly quote the cue file contents.
     // (an alernative to subbing in underscores)
@@ -70,7 +72,7 @@ pub fn rip_bin<P: RawMediaProvider>(
     // TODO: Audit when I want to die and when I want to keep going
     if !keep_tocfile {
         remove_file(&tocfile)
-            .chain_err(|| format!("Could not remove {}", tocfile.to_string_lossy()))?;
+            .with_context(|| format!("Could not remove {}", tocfile.to_string_lossy()))?;
     }
 
     // TODO: Do this without shelling out, then find a better way to make audio tracks obvious
@@ -86,7 +88,7 @@ pub fn rip_iso<P: RawMediaProvider>(provider: &P, disc_name: &str) -> Result<()>
     let logfile = volbase.with_extension("log");
 
     subprocess_call!("ddrescue", "-b", "2048", provider.device_path(), &isofile, &logfile)
-        .chain_err(|| "Initial ddrescue run reported failure")?;
+        .with_context(|| "Initial ddrescue run reported failure")?;
     subprocess_call!(
         "ddrescue",
         "--direct",
@@ -97,7 +99,7 @@ pub fn rip_iso<P: RawMediaProvider>(provider: &P, disc_name: &str) -> Result<()>
         &isofile,
         &logfile
     )
-    .chain_err(|| "Second ddrescue pass reported failure")?;
+    .with_context(|| "Second ddrescue pass reported failure")?;
     // TODO: Compare ddrescue to the reading modes of dvdiaster for recovering
     //       non-ECC-agumented discs.
     Ok(())
@@ -109,14 +111,14 @@ pub fn rip_audio<P: RawMediaProvider>(provider: &mut P, _: &str) -> Result<()> {
     // TODO: Use whipper instead, since it does everything we want already
     //       https://github.com/JoeLametta/whipper
     subprocess_call!("cdparanoia", "-B", "-d", provider.device_path())
-        .chain_err(|| "Failed to extract CD audio properly")?;
+        .with_context(|| "Failed to extract CD audio properly")?;
 
     let options = MatchOptions { case_sensitive: false, ..Default::default() };
 
     // TODO: HumanSort before operating on them
     #[allow(clippy::expect_used)]
     for wav_result in glob_with("*.wav", options).expect("hard-coded pattern is valid") {
-        match wav_result.chain_err(|| "Could not glob path") {
+        match wav_result.with_context(|| "Could not glob path") {
             Err(e) => return Err(e),
             Ok(path) => {
                 // TODO: Tidy this up when I'm not so tired
@@ -124,13 +126,13 @@ pub fn rip_audio<P: RawMediaProvider>(provider: &mut P, _: &str) -> Result<()> {
                 // TODO: Extend my subprocess_call! macro to accept a slice somehow
                 // TODO: Add support for metadata retrieval and optional gain normalization
                 // Encode tracks to FLAC
-                Command::new("flac").arg("--best").arg(&path).status().chain_err(|| {
+                Command::new("flac").arg("--best").arg(&path).status().with_context(|| {
                     format!("Could not encode dumped WAV file to FLAC: {}", path.to_string_lossy())
                 })?;
                 remove_file(&path).or_else(|e|
                     // FIXME: What was the rationale for the following?
                     if e.kind() == IOErrorKind::NotFound { Err(e) } else { Ok(()) })
-                    .chain_err(|| format!("Could not remove {}", path.to_string_lossy()))?;
+                    .with_context(|| format!("Could not remove {}", path.to_string_lossy()))?;
             },
         }
     }

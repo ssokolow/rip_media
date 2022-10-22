@@ -25,7 +25,6 @@ This file provided by [rust-cli-boilerplate](https://github.com/ssokolow/rust-cl
 use std::io;
 
 // 3rd-party imports
-mod errors;
 use log::error;
 use structopt::StructOpt;
 
@@ -37,13 +36,7 @@ mod validators;
 
 /// Boilerplate to parse command-line arguments, set up logging, and handle bubbled-up `Error`s.
 ///
-/// Based on the `StructOpt` example from stderrlog and the suggested error-chain harness from
-/// [quickstart.rs](https://github.com/brson/error-chain/blob/master/examples/quickstart.rs).
-///
 /// See `app::main` for the application-specific logic.
-///
-/// **TODO:** Consider switching to Failure and look into `impl Termination` as a way to avoid
-///           having to put the error message pretty-printing inside main()
 fn main() {
     // Parse command-line arguments (exiting on parse error, --version, or --help)
     let opts = app::CliOpts::from_args();
@@ -76,11 +69,8 @@ fn main() {
     if let Err(ref e) = app::main(opts) {
         // Write the top-level error message, then chained errors, then backtrace if available
         error!("error: {}", e);
-        for err in e.iter().skip(1) {
-            error!("caused by: {}", err);
-        }
-        if let Some(backtrace) = e.backtrace() {
-            error!("backtrace: {:?}", backtrace);
+        for cause in e.chain() {
+            error!("caused by: {}", cause);
         }
 
         // Exit with a nonzero exit code
