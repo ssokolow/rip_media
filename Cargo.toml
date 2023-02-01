@@ -7,7 +7,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 anyhow = "1.0.68"
-clap = { version = "3", features = ["derive"] }
+clap = { version = "4", features = ["derive"] }
 faccess = "0.2.4"
 glob = "0.3.1"
 log = "0.4.17"
