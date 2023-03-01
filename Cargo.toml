@@ -6,7 +6,7 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-anyhow = "1.0.68"
+anyhow = "1.0.69"
 clap = { version = "3", features = ["derive"] }
 faccess = "0.2.4"
 glob = "0.3.1"
