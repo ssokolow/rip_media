@@ -10,7 +10,7 @@ use std::thread::sleep;
 use std::time::{Duration, Instant};
 
 use anyhow::{bail, Context, Result};
-use rustyline::Editor;
+use rustyline::DefaultEditor;
 
 /// Default timeout duration (in seconds)
 pub const DEFAULT_TIMEOUT: u64 = 10;
@@ -195,7 +195,7 @@ impl<'devpath> NotificationProvider for LinuxPlatformProvider<'devpath> {
     }
 
     fn read_line(&self, prompt: &str) -> Result<String> {
-        Editor::<()>::new()
+        DefaultEditor::new()
             .context("Failed to initialize rustyline editor")?
             .readline(prompt)
             .with_context(|| format!("Failed to request information from user with: {}", prompt))
