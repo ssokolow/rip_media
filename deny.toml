@@ -1,5 +1,5 @@
 # I'm only targeting Linux currently, and this project is only COMPATIBLE with
-# POSIX targets due to the dependency on `/usr/bin/br`, so silence warnings
+# POSIX targets due to the dependency on POSIX tools, so silence warnings
 # about transitive dependencies specific to other targets.
 targets = [
     { triple = "i686-unknown-linux-gnu" },
@@ -14,9 +14,6 @@ unmaintained = "warn"
 yanked = "warn"
 notice = "warn"
 
-# Shouldn't affect us and waiting on stderrlog or the chrono it depends on
-ignore = ["RUSTSEC-2020-0071"]
-
 [licenses]
 unlicensed = "deny"
 allow = [
@@ -30,3 +27,6 @@ allow = [
 [bans]
 multiple-versions = "allow"
 wildcards = "deny"
+deny = [
+    { name = "serde_derive", version = ">=1.0.172" }
+]
