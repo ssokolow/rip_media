@@ -487,7 +487,7 @@ mod tests {
     #[test]
     fn path_valid_portable_refuses_invalid_characters() {
         for fname in INVALID_PORTABLE_FILENAMES {
-            assert!(path_valid_portable(OsStr::new(fname)).is_err(), "{path:?}");
+            assert!(path_valid_portable(OsStr::new(fname)).is_err(), "{fname:?}");
         }
     }
 
