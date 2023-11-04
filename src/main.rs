@@ -17,6 +17,7 @@ This file provided by [rust-cli-boilerplate](https://github.com/ssokolow/rust-cl
 #![allow(clippy::float_arithmetic, clippy::implicit_return, clippy::std_instead_of_core)]
 #![allow(clippy::std_instead_of_alloc, clippy::unseparated_literal_suffix)]
 #![allow(clippy::decimal_literal_representation, clippy::default_numeric_fallback)]
+#![allow(clippy::single_call_fn)]
 //
 // Enforce my policy of only allowing it in my own code as a last resort
 #![forbid(unsafe_code)]
@@ -39,17 +40,11 @@ fn main() {
     let opts = app::CliOpts::parse();
 
     // Configure logging output so that -q is "decrease verbosity" rather than instant silence
-    let verbosity = opts
-        .boilerplate
-        .verbose
-        .saturating_add(app::DEFAULT_VERBOSITY)
-        .saturating_sub(opts.boilerplate.quiet);
     #[allow(clippy::expect_used)]
     stderrlog::new()
         .module(module_path!())
-        .quiet(verbosity == 0)
-        .verbosity(verbosity.saturating_sub(1))
-        .timestamp(opts.boilerplate.timestamp.unwrap_or(stderrlog::Timestamp::Off))
+        .verbosity(opts.verbose.log_level_filter())
+        .timestamp(opts.timestamp.unwrap_or(stderrlog::Timestamp::Off))
         .init()
         .expect("initialize logging output");
 

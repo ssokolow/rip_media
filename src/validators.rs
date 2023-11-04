@@ -3,7 +3,7 @@
 
 use std::ffi::OsString;
 use std::fs::File;
-use std::path::{Component, Path};
+use std::path::{Component, Path, PathBuf};
 
 use faccess::PathExt;
 
@@ -78,29 +78,27 @@ pub fn path_output_dir<P: AsRef<Path> + ?Sized>(value: &P) -> Result<(), OsStrin
 /// **TODO:** Determine why `File::open` has no problem opening directory paths and decide how to
 /// adjust this.
 #[allow(dead_code)] // TEMPLATE:REMOVE
-pub fn path_readable<P: AsRef<Path> + ?Sized>(value: &P) -> std::result::Result<(), OsString> {
-    let path = value.as_ref();
-    File::open(path).map(|_| ()).map_err(|e| format!("{}: {}", path.display(), e).into())
+pub fn path_readable(path: PathBuf) -> std::result::Result<PathBuf, String> {
+    File::open(&path).map(|_| ()).map_err(|e| format!("{}: {}", path.display(), e))?;
+    Ok(path)
 }
 
 /// Test that the given path **should** be writable
-pub fn dir_writable<P: AsRef<Path> + ?Sized>(value: &P) -> std::result::Result<(), OsString> {
-    let path = value.as_ref();
-
+pub fn dir_writable(path: PathBuf) -> std::result::Result<PathBuf, String> {
     // Test that the path is a directory
     // (Check before, not after, as an extra safety guard on the unsafe block)
     if !path.is_dir() {
-        return Err(format!("Not a directory: {}", path.display()).into());
+        return Err(format!("Not a directory: {}", path.display()));
     }
 
     // TODO: Think about how to code this more elegantly (try! perhaps?)
     if let Ok(abs_pathbuf) = path.canonicalize() {
         if abs_pathbuf.writable() {
-            return Ok(());
+            return Ok(path);
         }
     }
 
-    Err(format!("Would be unable to write to destination directory: {}", path.display()).into())
+    Err(format!("Would be unable to write to destination directory: {}", path.display()))
 }
 
 /// The given path is valid on all major filesystems and OSes
@@ -254,14 +252,14 @@ pub fn filename_valid_portable<P: AsRef<Path> + ?Sized>(value: &P) -> Result<(),
         )
     }) {
         #[allow(clippy::use_debug)]
-        return Err(format!("Path component contains invalid characters: {:?}", path).into());
+        return Err(format!("Path component contains invalid characters: {path:?}").into());
     }
 
     // Reserved DOS filenames that still can't be used on modern Windows for compatibility
     if let Some(file_stem) = path.file_stem() {
         let stem = file_stem.to_string_lossy().to_uppercase();
         if RESERVED_DOS_FILENAMES.iter().any(|&x| x == stem) {
-            return Err(format!("Filename is reserved on Windows: {:?}", file_stem).into());
+            return Err(format!("Filename is reserved on Windows: {file_stem:?}").into());
         }
     }
     Ok(())
@@ -299,24 +297,25 @@ mod tests {
     #[test]
     fn path_readable_basic_functionality() {
         // Existing paths
-        assert!(path_readable(OsStr::new("/")).is_ok()); // OK Folder
-        assert!(path_readable(OsStr::new("/bin/sh")).is_ok()); // OK File
-        assert!(path_readable(OsStr::new("/bin/../../etc/.././.")).is_ok()); // Not canonicalized
-        assert!(path_readable(OsStr::new("/../../../..")).is_ok()); // Above root
+        assert!(path_readable(PathBuf::from("/")).is_ok()); // OK Folder
+        assert!(path_readable(PathBuf::from("/bin/sh")).is_ok()); // OK File
+        assert!(path_readable(PathBuf::from("/bin/../../etc/.././.")).is_ok()); // Not canonicalized
+        assert!(path_readable(PathBuf::from("/../../../..")).is_ok()); // Above root
 
         // Inaccessible, nonexistent, or invalid paths
-        assert!(path_readable(OsStr::new("")).is_err()); // Empty String
-        assert!(path_readable(OsStr::new("/etc/shadow")).is_err()); // Denied File
-        assert!(path_readable(OsStr::new("/etc/ssl/private")).is_err()); // Denied Folder
-        assert!(path_readable(OsStr::new("/nonexistant_test_path")).is_err()); // Missing Path
-        assert!(path_readable(OsStr::new("/null\0containing")).is_err()); // Invalid CString
+        assert!(path_readable(PathBuf::from("")).is_err()); // Empty String
+        assert!(path_readable(PathBuf::from("/etc/shadow")).is_err()); // Denied File
+        assert!(path_readable(PathBuf::from("/etc/ssl/private")).is_err()); // Denied Folder
+        assert!(path_readable(PathBuf::from("/nonexistant_test_path")).is_err()); // Missing Path
+        assert!(path_readable(PathBuf::from("/null\0containing")).is_err()); // Invalid CString
     }
 
     #[cfg(not(windows))]
     #[test]
     fn path_readable_invalid_utf8() {
-        assert!(path_readable(OsStr::from_bytes(b"/not\xffutf8")).is_err()); // Invalid UTF-8
-                                                                             // TODO: Non-UTF8 path that actually IS valid
+        assert!(path_readable(PathBuf::from(OsStr::from_bytes(b"/not\xffutf8"))).is_err());
+        // Invalid UTF-8
+        // TODO: Non-UTF8 path that actually IS valid
     }
     #[cfg(windows)]
     #[test]
@@ -329,17 +328,17 @@ mod tests {
 
     #[test]
     fn dir_writable_basic_functionality() {
-        assert!(dir_writable(OsStr::new("/tmp")).is_ok()); // OK Folder
-        assert!(dir_writable(OsStr::new("/dev/null")).is_err()); // OK File
-        assert!(dir_writable(OsStr::new("/etc/shadow")).is_err()); // Denied File
-        assert!(dir_writable(OsStr::new("/etc/ssl/private")).is_err()); // Denied Folder
-        assert!(dir_writable(OsStr::new("/nonexistant_test_path")).is_err()); // Missing Path
-        assert!(dir_writable(OsStr::new("/tmp\0with\0null")).is_err()); // Invalid CString
-        assert!(dir_writable(OsStr::from_bytes(b"/not\xffutf8")).is_err()); // Invalid UTF-8
-        assert!(dir_writable(OsStr::new("/")).is_err()); // Root
-                                                         // TODO: is_dir but fails to canonicalize()
-                                                         // TODO: Not-already-canonicalized paths
-                                                         // TODO: Non-UTF8 path that actually does exist and is writable
+        assert!(dir_writable(PathBuf::from("/tmp")).is_ok()); // OK Folder
+        assert!(dir_writable(PathBuf::from("/dev/null")).is_err()); // OK File
+        assert!(dir_writable(PathBuf::from("/etc/shadow")).is_err()); // Denied File
+        assert!(dir_writable(PathBuf::from("/etc/ssl/private")).is_err()); // Denied Folder
+        assert!(dir_writable(PathBuf::from("/nonexistant_test_path")).is_err()); // Missing Path
+        assert!(dir_writable(PathBuf::from("/tmp\0with\0null")).is_err()); // Invalid CString
+        assert!(dir_writable(PathBuf::from(OsStr::from_bytes(b"/not\xffutf8"))).is_err()); // Invalid UTF-8
+        assert!(dir_writable(PathBuf::from("/")).is_err()); // Root
+                                                            // TODO: is_dir but fails to canonicalize()
+                                                            // TODO: Not-already-canonicalized paths
+                                                            // TODO: Non-UTF8 path that actually does exist and is writable
     }
 
     // ---- filename_valid_portable ----
@@ -405,24 +404,24 @@ mod tests {
     #[test]
     fn filename_valid_portable_accepts_valid_names() {
         for path in VALID_FILENAMES {
-            assert!(filename_valid_portable(OsStr::new(path)).is_ok(), "{:?}", path);
+            assert!(filename_valid_portable(OsStr::new(path)).is_ok(), "{path:?}");
         }
     }
 
     #[test]
     fn filename_valid_portable_refuses_path_separators() {
         for path in PATHS_WITH_NATIVE_SEPARATORS {
-            assert!(filename_valid_portable(OsStr::new(path)).is_err(), "{:?}", path);
+            assert!(filename_valid_portable(OsStr::new(path)).is_err(), "{path:?}");
         }
         for path in PATHS_WITH_FOREIGN_SEPARATORS {
-            assert!(filename_valid_portable(OsStr::new(path)).is_err(), "{:?}", path);
+            assert!(filename_valid_portable(OsStr::new(path)).is_err(), "{path:?}");
         }
     }
 
     #[test]
     fn filename_valid_portable_refuses_invalid_characters() {
         for fname in INVALID_PORTABLE_FILENAMES {
-            assert!(filename_valid_portable(OsStr::new(fname)).is_err(), "{:?}", fname);
+            assert!(filename_valid_portable(OsStr::new(fname)).is_err(), "{fname:?}");
         }
     }
 
@@ -460,7 +459,7 @@ mod tests {
     #[test]
     fn path_valid_portable_accepts_valid_names() {
         for path in VALID_FILENAMES {
-            assert!(path_valid_portable(OsStr::new(path)).is_ok(), "{:?}", path);
+            assert!(path_valid_portable(OsStr::new(path)).is_ok(), "{path:?}");
         }
 
         // No filename (.file_stem() returns None)
@@ -470,7 +469,7 @@ mod tests {
     #[test]
     fn path_valid_portable_accepts_native_path_separators() {
         for path in PATHS_WITH_NATIVE_SEPARATORS {
-            assert!(path_valid_portable(OsStr::new(path)).is_ok(), "{:?}", path);
+            assert!(path_valid_portable(OsStr::new(path)).is_ok(), "{path:?}");
         }
 
         // Verify that repeated separators are getting collapsed before filename_valid_portable
@@ -481,14 +480,14 @@ mod tests {
     #[test]
     fn path_valid_portable_refuses_foreign_path_separators() {
         for path in PATHS_WITH_FOREIGN_SEPARATORS {
-            assert!(path_valid_portable(OsStr::new(path)).is_err(), "{:?}", path);
+            assert!(path_valid_portable(OsStr::new(path)).is_err(), "{path:?}");
         }
     }
 
     #[test]
     fn path_valid_portable_refuses_invalid_characters() {
         for fname in INVALID_PORTABLE_FILENAMES {
-            assert!(path_valid_portable(OsStr::new(fname)).is_err(), "{:?}", fname);
+            assert!(path_valid_portable(OsStr::new(fname)).is_err(), "{path:?}");
         }
     }
 

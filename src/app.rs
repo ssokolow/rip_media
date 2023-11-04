@@ -7,14 +7,16 @@ use std::path::{Component::CurDir, PathBuf};
 
 // 3rd-party crate imports
 use anyhow::Result;
-use clap::Parser;
+use clap::{
+    builder::styling::{AnsiColor, Styles},
+    builder::{PathBufValueParser, TypedValueParser},
+    Parser,
+};
+use clap_verbosity_flag::{Verbosity, WarnLevel};
 
 // Local Imports
-use crate::validators::{dir_writable, filename_valid_portable, path_readable};
+use crate::validators::{dir_writable, path_readable};
 use crate::{platform, subcommands};
-
-/// The verbosity level when no `-q` or `-v` arguments are given, with `0` being `-q`
-pub const DEFAULT_VERBOSITY: usize = 1;
 
 // TODO: The retrode path should incorporate the current username
 // TODO: Allow overriding in a config file (Perhaps via .env with
@@ -30,144 +32,120 @@ const DEFAULT_INPATH: &str = "/dev/sr0";
 // TODO: Audit all of my explicit lifetimes and give them descriptive names
 // https://scribbles.pascalhertleif.de/elegant-apis-in-rust.html
 
-/// Modified version of Clap's default template for proper help2man compatibility
-const HELP_TEMPLATE: &str = "{bin} {version}
-
-{about}
-
-USAGE:
-    {usage}
-
-{all-args}
-";
-
-/// Options used by boilerplate code
-// TODO: Move these into a struct of their own in something like helpers.rs
-#[derive(Parser, Debug)]
-#[clap(rename_all = "kebab-case")]
-pub struct BoilerplateOpts {
-    // -- Arguments used by main.rs --
-    // TODO: Move these into a struct of their own in something like helpers.rs
-    /// Decrease verbosity (-q, -qq, -qqq, etc.)
-    #[clap(short, long, parse(from_occurrences))]
-    pub quiet: usize,
-
-    /// Increase verbosity (-v, -vv, -vvv, etc.)
-    #[clap(short, long, parse(from_occurrences))]
-    pub verbose: usize,
-
-    /// Display timestamps on log messages (sec, ms, ns, none)
-    #[clap(short, long, value_name = "resolution")]
-    pub timestamp: Option<stderrlog::Timestamp>,
+fn styles() -> Styles {
+    Styles::styled()
+        .header(AnsiColor::Yellow.on_default())
+        .usage(AnsiColor::Yellow.on_default())
+        .literal(AnsiColor::Green.on_default())
+        .placeholder(AnsiColor::Green.on_default())
 }
 
 /// Command-line argument schema
 // NOTE: long_about must begin with '\n' for compatibility with help2man
 // FIXME: clap-rs issue #694
 #[derive(Parser, Debug)]
-#[clap(
+#[command(
     version,
-    template = HELP_TEMPLATE,
     rename_all = "kebab-case",
     about = "\nSimple frontend for backing up physical media",
-    setting = clap::AppSettings::GlobalVersion,
-    setting = clap::AppSettings::SubcommandRequiredElseHelp
+    long_about = None,
+    styles = styles()
 )]
 pub struct CliOpts {
-    #[allow(clippy::missing_docs_in_private_items)] // clap won't let us document this
-    #[clap(flatten)]
-    pub boilerplate: BoilerplateOpts,
+    #[command(flatten)]
+    pub verbose: Verbosity<WarnLevel>,
+
+    /// Display timestamps on log messages (sec, ms, ns, none)
+    #[arg(short, long, value_name = "resolution")]
+    pub timestamp: Option<stderrlog::Timestamp>,
 
     // -- Common Arguments --
     // TODO: Test (using something like `assert_cmd`) that inpath is required
     /// Path to source medium (device, image file, etc.)
-    #[clap(
+    #[arg(
         short,
         long,
         global = true,
-        empty_values = false,
         value_name = "PATH",
         required = false,
         value_parser,
+        // TODO: Fix unit test
+        // value_parser = PathBufValueParser::new().try_map(path_readable),
         default_value = DEFAULT_INPATH
     )]
     inpath: PathBuf,
 
     /// Path to parent directory for output file(s)
-    #[clap(
+    #[arg(
         short,
         long,
-        parse(from_os_str),
         global = true,
-        empty_values = false,
         value_name = "PATH",
         required = false,
-        default_value_os = CurDir.as_os_str()
+        default_value_os = CurDir.as_os_str(),
+        value_parser = PathBufValueParser::new().try_map(dir_writable),
     )]
     outdir: PathBuf,
 
     /// Specify the output file/folder name [default: <the volume label>]
-    #[clap(long, global = true, empty_values = false, value_name = "NAME")]
+    #[arg(long, global = true, value_name = "NAME")] // TODO: Use filename_valid_portable
     name: Option<String>, // TODO: Decide how to combine this default with --set-size
 
     /// Number of discs/cartridges/etc. to process under the same name
     /// (eg. multi-disc games/albums)
-    #[clap(long, global = true, empty_values = false, value_name = "NUM", default_value = "1",
+    #[arg(long, global = true, value_name = "NUM", default_value = "1",
         value_parser = clap::value_parser!(u16).range(1..))]
     set_size: u16,
 
     /// Which subcommand to invoke
-    #[clap(subcommand)]
+    #[command(subcommand)]
     cmd: Command,
 }
 
 /// Valid subcommands
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Parser, Debug)]
-#[clap(
-    rename_all = "kebab-case",
-    about = "\nSimple frontend for backing up physical media",
-    template = HELP_TEMPLATE)]
+#[command(rename_all = "kebab-case", about = "\nSimple frontend for backing up physical media")]
 pub enum Command {
     /// Rip an audio CD
-    #[clap(display_order = 1, template = HELP_TEMPLATE)]
+    #[command(display_order = 1)]
     Audio,
 
     /// Rip a PC CD-ROM
-    #[clap(display_order = 1, template = HELP_TEMPLATE)]
+    #[command(display_order = 1)]
     CD,
 
     /// Rip a PC DVD-ROM
-    #[clap(display_order = 1, template = HELP_TEMPLATE)]
+    #[command(display_order = 1)]
     DVD,
 
     /// Rip a Sony PlayStation (PSX) disc in a PCSX/mednafen-compatible format
-    #[clap(display_order = 1, template = HELP_TEMPLATE)]
+    #[command(display_order = 1)]
     PSX,
 
     /// Rip a Sony PlayStation 2 disc into a PCSX2-compatible format
-    #[clap(display_order = 1, template = HELP_TEMPLATE)]
+    #[command(display_order = 1)]
     PS2,
 
     /// Rip a cartridge connected to the PC via a Retrode
-    #[clap(display_order = 2, template = HELP_TEMPLATE)]
+    #[command(display_order = 2)]
     Retrode,
 
     /// Rip a UMD via a USB-connected PSP running custom firmware
-    #[clap(display_order = 2, template = HELP_TEMPLATE)]
+    #[command(display_order = 2)]
     UMD,
 
     /// Validate and process a disc image dumped by a Wii running CleanRip
-    #[clap(display_order = 2, template = HELP_TEMPLATE)]
+    #[command(display_order = 2)]
     Cleanrip {
         // TODO: Can I make this an --in-place option shared among subcommands?
         /// Only run the hash-validation without processing further
-        #[clap(long)]
+        #[arg(long)]
         just_validate: bool,
     },
 
     /// Recover a damaged CD
-    #[clap(display_order = 1, template = HELP_TEMPLATE)]
+    #[command(display_order = 1)]
     Damaged,
 }
 
@@ -214,7 +192,7 @@ mod tests {
     ///
     #[test]
     fn inpath_has_expected_default_if_not_given() {
-        let opts = CliOpts::from_iter(&["rip_media", "cd"]);
+        let opts = CliOpts::parse_from(&["rip_media", "cd"]);
         assert!(
             opts.inpath == Path::new(DEFAULT_INPATH),
             "Expected default inpath to be {:?} but got {:?}",
@@ -225,7 +203,7 @@ mod tests {
 
     #[test]
     fn outdir_has_expected_default_if_not_given() {
-        let opts = CliOpts::from_iter(&["rip_media", "cd"]);
+        let opts = CliOpts::parse_from(&["rip_media", "cd"]);
         assert!(
             opts.outdir == Path::new(CurDir.as_os_str()),
             "Expected default outdir to be {:?} but got {:?}",
@@ -237,7 +215,7 @@ mod tests {
     #[test]
     /// Can override `DEFAULT_INPATH` when specifying -i before the subcommand
     fn test_can_override_inpath_before() {
-        let opts = CliOpts::from_iter(&["rip_media", "-i/", "cd"]);
+        let opts = CliOpts::parse_from(&["rip_media", "-i/", "cd"]);
         assert!(
             opts.inpath == Path::new("/"),
             "\"-i/ cd\" should have produced \"/\" but actually produced \"{:?}\"",
@@ -248,7 +226,7 @@ mod tests {
     #[test]
     /// Can override `DEFAULT_INPATH` when specifying -i after the subcommand
     fn test_can_override_inpath_after() {
-        let opts = CliOpts::from_iter(&["rip_media", "cd", "-i/"]);
+        let opts = CliOpts::parse_from(&["rip_media", "cd", "-i/"]);
         assert!(
             opts.inpath == Path::new("/"),
             "\"cd -i/\" should have produced \"/\" but actually produced \"{:?}\"",
