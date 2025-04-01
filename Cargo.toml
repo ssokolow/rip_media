@@ -6,7 +6,7 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-anyhow = "1.0.96"
+anyhow = "1.0.97"
 clap = { version = "4.5.31", features = ["derive"] }
 clap-verbosity-flag = "3.0.2"
 faccess = "0.2.4"
