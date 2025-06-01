@@ -12,7 +12,7 @@ clap-verbosity-flag = "3.0.2"
 faccess = "0.2.4"
 glob = "0.3.2"
 log = "0.4.27"
-rustyline = "15.0.0"
+rustyline = "16.0.0"
 stderrlog = "0.6.0"
 
 [profile.release]
