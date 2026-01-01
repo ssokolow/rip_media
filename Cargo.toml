@@ -11,7 +11,7 @@ clap = { version = "4.5.53", features = ["derive"] }
 clap-verbosity-flag = "3.0.4"
 faccess = "0.2.4"
 glob = "0.3.3"
-log = "0.4.28"
+log = "0.4.29"
 rustyline = "17.0.2"
 stderrlog = "0.6.0"
 
